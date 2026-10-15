@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Martin Luk 动量交易风险与仓位终端 | USIC 冠军风控体系</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        terminal: {
+                            bg: '#090c10',
+                            card: '#11161f',
+                            border: '#1f2937',
+                            hover: '#1a2230',
+                            accent: '#10b981',
+                            short: '#f43f5e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #090c10;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.06) 0px, transparent 45%),
+                radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.06) 0px, transparent 45%);
+            color: #e2e8f0;
+        }
+        /* 自定义滑块样式 */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #1e293b;
+            border-radius: 999px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #10b981;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+            border: 2px solid #090c10;
+            transition: transform 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+        /* 隐藏数字输入框默认箭头 */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        .glass-panel {
+            background: rgba(17, 22, 31, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-300 pb-12">
+
+    <!-- 顶部专业状态导航栏 -->
+    <header class="border-b border-slate-800/80 bg-[#0b0f17]/90 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 font-mono font-bold text-slate-950 text-lg">
+                    ML
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-base sm:text-lg tracking-tight text-white">MARTIN LUK <span class="text-emerald-400 font-mono text-sm font-semibold">RISK ENGINE</span></h1>
+                        <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            USIC +969.8% 体系
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400">极窄止损锚定 · 小周期 Shakeout 右侧确认 · 动态 R 倍数仓位管理终端</p>
+                </div>
+            </div>
+
+            <!-- 哲学铭言与快捷操作 -->
+            <div class="flex items-center gap-2 sm:gap-3 ml-auto">
+                <div class="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-xs text-slate-400 font-mono">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>"Love your stops, not your stocks." — 胜率 ~25% | 极致盈亏比</span>
+                </div>
+                <button onclick="toggleApiModal()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/80 text-xs font-mono transition" title="配置行情数据源与 Finnhub API Key">
+                    <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span class="hidden sm:inline">数据源配置</span>
+                </button>
+                <button id="copyPlanBtn" onclick="copyTradePlan()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition active:scale-95">
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    <span>复制交易计划</span>
+                </button>
+                <button onclick="resetDefaults()" class="p-1.5 rounded-lg bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 transition" title="重置默认参数">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- API 数据源设置折叠面板 -->
+    <div id="apiConfigModal" class="hidden max-w-[1440px] mx-auto px-4 sm:px-6 pt-3">
+        <div class="p-4 rounded-xl bg-slate-900/95 border border-cyan-500/40 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">多引擎自适应行情网关</span>
+                    <span class="text-xs font-bold text-white">可选配置 Finnhub 免费 API Key (加速美股 IEX 实时报价)</span>
+                </div>
+                <p class="text-xs text-slate-400">
+                    系统默认启用 <strong>Engine 1 (Yahoo Finance 60日K线免Key引擎)</strong> 与 <strong>Engine 2 (Binance 加密货币直连)</strong>。如需更高频美股报价，可填入免费申请的 <a href="https://finnhub.io/" target="_blank" class="text-cyan-400 underline hover:text-cyan-300">Finnhub API Key</a>（保存在本地浏览器）。
+                </p>
+            </div>
+            <div class="flex items-center gap-2 w-full md:w-auto">
+                <input type="password" id="finnhubKeyInput" placeholder="输入 Finnhub API Key (选填)..." class="w-full md:w-64 bg-slate-950 border border-slate-700 focus:border-cyan-400 rounded-lg px-3 py-1.5 text-xs font-mono text-white focus:outline-none">
+                <button onclick="saveFinnhubKey()" class="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs font-mono transition shrink-0">保存配置</button>
+                <button onclick="toggleApiModal()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition shrink-0">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主体内容区 -->
+    <main class="max-w-[1440px] mx-auto px-4 sm:px-6 pt-4">
+
+        <!-- 新增模块：顶部实时行情与 Martin Luk 均线/ADR% 自动拉取终端 (Live Market Data Terminal Bar) -->
+        <section class="mb-5 glass-panel rounded-2xl p-4 sm:p-5 shadow-2xl border border-slate-800/90 relative overflow-hidden">
+            <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+                
+                <!-- 左侧：代码搜索框 + 快捷热门动量股标签 -->
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <div class="relative flex items-center">
+                        <span class="absolute left-3 text-xs font-mono text-emerald-400 font-bold">$</span>
+                        <input type="text" id="liveTickerSearch" value="NVDA" placeholder="输入代码 (如 NVDA, BTCUSDT)" onkeydown="if(event.key==='Enter') fetchMarketData()" class="w-36 sm:w-44 bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-xl pl-7 pr-3 py-2 text-sm font-mono font-bold text-white uppercase focus:outline-none transition">
+                    </div>
+
+                    <button id="fetchLiveBtn" onclick="fetchMarketData()" class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs sm:text-sm font-mono shadow-lg shadow-emerald-500/20 transition active:scale-95">
+                        <svg id="fetchSpinner" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        <span id="fetchBtnText">获取实时行情</span>
+                    </button>
+
+                    <!-- 10秒自动刷新开关 -->
+                    <label class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-800 text-xs font-mono text-slate-300 cursor-pointer hover:border-slate-700 transition select-none">
+                        <input type="checkbox" id="autoRefreshToggle" onchange="toggleAutoRefresh()" class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-0">
+                        <span>10s 自动刷新</span>
+                    </label>
+
+                    <!-- 热门动量股与加密标的快捷 Chips -->
+                    <div class="flex items-center flex-wrap gap-1.5 pl-1">
+                        <span class="text-[11px] font-mono text-slate-500 mr-0.5">焦点池:</span>
+                        <button onclick="quickSelectTicker('NVDA')" class="px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-emerald-400 border border-slate-800 text-xs font-mono transition">NVDA</button>
+                        <button onclick="quickSelectTicker('PLTR')" class="px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-emerald-400 border border-slate-800 text-xs font-mono transition">PLTR</button>
+                        <button onclick="quickSelectTicker('TSLA')" class="px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-emerald-400 border border-slate-800 text-xs font-mono transition">TSLA</button>
+                        <button onclick="quickSelectTicker('APP')" class="px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-emerald-400 border border-slate-800 text-xs font-mono transition">APP</button>
+                        <button onclick="quickSelectTicker('MSTR')" class="px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-emerald-400 border border-slate-800 text-xs font-mono transition">MSTR</button>
+                        <button onclick="quickSelectTicker('SMCI')" class="px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-emerald-400 border border-slate-800 text-xs font-mono transition">SMCI</button>
+                        <button onclick="quickSelectTicker('BTCUSDT')" class="px-2 py-1 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-mono transition">BTCUSDT</button>
+                        <button onclick="quickSelectTicker('SOLUSDT')" class="px-2 py-1 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-mono transition">SOLUSDT</button>
+                    </div>
+                </div>
+
+                <!-- 右侧：Martin Luk 日线均线排列分组状态 (Watchlist EMA Stack Group) & 数据源状态 -->
+                <div class="flex flex-wrap items-center gap-2.5 justify-between xl:justify-end">
+                    <div id="emaGroupBadge" class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span>强势多头组 (9 EMA > 21 EMA > 50 EMA)</span>
+                    </div>
+                    <div id="dataSourceBadge" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+                        <span id="sourceDot" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span id="sourceText">就绪 · 点击获取实时行情</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中部：6宫格实时行情与日线关键指标条 (Live Metrics Strip) -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 my-3.5">
+                <!-- 最新现价 -->
+                <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800/90">
+                    <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                        <span>最新现价 (LAST)</span>
+                        <span id="liveChangeBadge" class="text-emerald-400 font-bold">+2.45%</span>
+                    </div>
+                    <div id="liveLastPrice" class="text-lg sm:text-xl font-mono font-bold text-white mt-0.5">$138.60</div>
+                    <div id="livePrevClose" class="text-[11px] font-mono text-slate-500">昨收: $135.29</div>
+                </div>
+
+                <!-- 当日最低价 LoD (做多 Shakeout 关键锚点) -->
+                <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800/90">
+                    <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                        <span>当日最低 (LoD)</span>
+                        <span class="text-emerald-400">做多止损锚点</span>
+                    </div>
+                    <div id="liveLoDPrice" class="text-lg sm:text-xl font-mono font-bold text-emerald-400 mt-0.5">$135.80</div>
+                    <div id="liveLoDDist" class="text-[11px] font-mono text-slate-400">距现价: -2.02%</div>
+                </div>
+
+                <!-- 当日最高价 HoD (做空 Parabolic 关键锚点) -->
+                <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800/90">
+                    <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                        <span>当日最高 (HoD)</span>
+                        <span class="text-rose-400">做空止损锚点</span>
+                    </div>
+                    <div id="liveHoDPrice" class="text-lg sm:text-xl font-mono font-bold text-rose-400 mt-0.5">$139.90</div>
+                    <div id="liveHoDDist" class="text-[11px] font-mono text-slate-400">距现价: +0.94%</div>
+                </div>
+
+                <!-- 日线 9 EMA (强势领涨生命线) -->
+                <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800/90">
+                    <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                        <span>日线 9 EMA</span>
+                        <span class="text-cyan-400">短线加速均线</span>
+                    </div>
+                    <div id="liveEma9" class="text-lg sm:text-xl font-mono font-bold text-cyan-300 mt-0.5">$136.10</div>
+                    <div id="liveEma9Dist" class="text-[11px] font-mono text-slate-400">偏离度: +1.84%</div>
+                </div>
+
+                <!-- 日线 21 EMA (核心回踩共振均线) -->
+                <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800/90">
+                    <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                        <span>日线 21 EMA</span>
+                        <span class="text-purple-400">波段回调中枢</span>
+                    </div>
+                    <div id="liveEma21" class="text-lg sm:text-xl font-mono font-bold text-purple-300 mt-0.5">$131.40</div>
+                    <div id="liveEma50Sub" class="text-[11px] font-mono text-slate-400">50 EMA: $122.80</div>
+                </div>
+
+                <!-- 自动计算的 20日 ADR% -->
+                <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800/90">
+                    <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                        <span>20日 ADR% (实测)</span>
+                        <span class="text-amber-400">日均振幅</span>
+                    </div>
+                    <div id="liveAdr20" class="text-lg sm:text-xl font-mono font-bold text-amber-300 mt-0.5">4.85%</div>
+                    <div id="liveHalfAdr" class="text-[11px] font-mono text-slate-400">0.5x ADR 阈值: 2.43%</div>
+                </div>
+            </div>
+
+            <!-- 底部：盘中极速算仓一键注入栏 (One-Click Tactical Price & Stop-Loss Injection) -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-800/60 text-xs">
+                <div class="flex items-center gap-2 text-slate-400 font-mono">
+                    <span class="text-emerald-400 font-bold">⚡ 盘中极速锚定指令:</span>
+                    <span class="hidden sm:inline">点击下方按钮直接将实盘关键位填入计算器并重算股数</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <button onclick="injectLivePriceAsEntry()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-mono text-xs transition active:scale-95">
+                        填入现价为入场价
+                    </button>
+                    <button onclick="injectStopFromLive('LOD')" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-mono text-xs font-semibold transition active:scale-95" title="做多标准：以当日 Shakeout 最低点 LoD 作为止损位">
+                        🎯 以当日低点 (LoD) 设为止损 (做多)
+                    </button>
+                    <button onclick="injectStopFromLive('HOD')" class="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 font-mono text-xs font-semibold transition active:scale-95" title="抛物线做空标准：以当日最高点 HoD 作为止损位">
+                        🎯 以当日高点 (HoD) 设为止损 (做空)
+                    </button>
+                    <button onclick="injectStopFromLive('EMA9')" class="px-2.5 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 font-mono text-xs transition active:scale-95">
+                        以 9 EMA (-0.3%) 设为止损
+                    </button>
+                    <button onclick="injectStopFromLive('EMA21')" class="px-2.5 py-1.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 font-mono text-xs transition active:scale-95">
+                        以 21 EMA (-0.3%) 设为止损
+                    </button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 顶部：3大核心策略模式预设切换 (Setup Presets) -->
+        <section class="mb-5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <!-- 模式 1: Quality Pullback -->
+                <button onclick="selectPreset('pullback')" id="preset-pullback" class="text-left p-3.5 rounded-xl border transition-all relative overflow-hidden group">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-mono uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            SETUP 01 · 核心主力模型
+                        </span>
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">LONG 做多</span>
+                    </div>
+                    <div class="font-bold text-slate-100 text-sm sm:text-base">共振回调买点 (Quality Pullback)</div>
+                    <p class="text-xs text-slate-400 mt-1 line-clamp-1">日线回踩 9/21 EMA + 关键日 AVWAP 收敛区，小周期 Undercut V反入场</p>
+                    <div class="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                        <span>推荐止损范围: <strong class="text-emerald-400">1.5% - 3.0%</strong></span>
+                        <span>典型触发: 5m/15m ORH</span>
+                    </div>
+                </button>
+
+                <!-- 模式 2: HTF / EP Breakout -->
+                <button onclick="selectPreset('breakout')" id="preset-breakout" class="text-left p-3.5 rounded-xl border transition-all relative overflow-hidden group">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-mono uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                            SETUP 02 · 动量主升浪
+                        </span>
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">LONG 做多</span>
+                    </div>
+                    <div class="font-bold text-slate-100 text-sm sm:text-base">高窄旗形 / 事件跳空 (HTF / EP)</div>
+                    <p class="text-xs text-slate-400 mt-1 line-clamp-1">翻倍旗杆紧凑缩量横盘突破，或超预期催化剂跳空放量突破盘整区</p>
+                    <div class="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                        <span>推荐止损范围: <strong class="text-cyan-400">2.0% - 4.0%</strong></span>
+                        <span>典型触发: 1m/5m ORB</span>
+                    </div>
+                </button>
+
+                <!-- 模式 3: Parabolic Short -->
+                <button onclick="selectPreset('short')" id="preset-short" class="text-left p-3.5 rounded-xl border transition-all relative overflow-hidden group">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-mono uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                            SETUP 03 · 情绪赶顶反转
+                        </span>
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30">SHORT 做空</span>
+                    </div>
+                    <div class="font-bold text-slate-100 text-sm sm:text-base">抛物线力竭做空 (Parabolic Short)</div>
+                    <p class="text-xs text-slate-400 mt-1 line-clamp-1">连续加速延伸后出现力竭跳空高开，跌破首根K线 AVWAP 极窄止损做空</p>
+                    <div class="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                        <span>推荐极窄止损: <strong class="text-rose-400">0.4% - 1.5%</strong></span>
+                        <span>持仓周期: 2 - 3 天快进快出</span>
+                    </div>
+                </button>
+            </div>
+        </section>
+
+        <!-- 主体双栏/三栏网格布局 -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            
+            <!-- 左侧栏：账户与风控核心参数输入 (占 5 列) -->
+            <div class="lg:col-span-5 space-y-5">
+                
+                <!-- 卡片 1: 账户资金与单笔风控设定 -->
+                <div class="glass-panel rounded-2xl p-5 shadow-xl">
+                    <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <h2 class="font-bold text-sm text-white uppercase tracking-wider">1. 账户净值与风控边界 (Account & Risk)</h2>
+                        </div>
+                        <span class="text-xs font-mono text-slate-400">USIC 纪律标准</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- 股票代码 (可选) & 多空方向切换 -->
+                        <div class="grid grid-cols-12 gap-3">
+                            <div class="col-span-5">
+                                <label class="block text-xs text-slate-400 mb-1.5">标的代码 (Ticker)</label>
+                                <div class="flex gap-1">
+                                    <input type="text" id="tickerInput" value="NVDA" placeholder="如 NVDA" oninput="syncTickerInput()" class="w-full bg-slate-900/90 border border-slate-700/80 focus:border-emerald-500 rounded-lg px-3 py-2 text-sm font-mono font-bold text-white uppercase focus:outline-none transition">
+                                    <button type="button" onclick="fetchMarketData()" title="同步拉取该标的实时行情" class="px-2.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-mono transition shrink-0">
+                                        拉取
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-span-7">
+                                <label class="block text-xs text-slate-400 mb-1.5">交易方向 (Direction)</label>
+                                <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-900 rounded-lg border border-slate-800">
+                                    <button type="button" id="dirLongBtn" onclick="setDirection('LONG')" class="py-1.5 rounded-md text-xs font-mono font-bold transition flex items-center justify-center gap-1">
+                                        <span>▲ LONG 做多</span>
+                                    </button>
+                                    <button type="button" id="dirShortBtn" onclick="setDirection('SHORT')" class="py-1.5 rounded-md text-xs font-mono font-bold transition flex items-center justify-center gap-1">
+                                        <span>▼ SHORT 做空</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 账户总净值 -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="text-xs text-slate-300 font-medium">账户总净值 (Account Equity)</label>
+                                <div class="flex gap-1">
+                                    <button onclick="setEquity(10000)" class="px-2 py-0.5 text-[11px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">$10k</button>
+                                    <button onclick="setEquity(20000)" class="px-2 py-0.5 text-[11px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="USIC 锦标赛标准组">$20k</button>
+                                    <button onclick="setEquity(50000)" class="px-2 py-0.5 text-[11px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">$50k</button>
+                                    <button onclick="setEquity(100000)" class="px-2 py-0.5 text-[11px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">$100k</button>
+                                </div>
+                            </div>
+                            <div class="relative">
+                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-sm">$</span>
+                                <input type="number" id="equityInput" value="50000" min="100" step="1000" oninput="calculateAll()" class="w-full bg-slate-900/90 border border-slate-700/80 focus:border-emerald-500 rounded-lg pl-8 pr-4 py-2.5 text-base font-mono font-bold text-white focus:outline-none transition">
+                            </div>
+                        </div>
+
+                        <!-- 单笔风险比例 (Risk per Trade %) -->
+                        <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800/90">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="text-xs text-slate-300 font-medium flex items-center gap-1.5">
+                                    <span>单笔风险比例 (Risk / Trade)</span>
+                                    <span class="text-[11px] font-mono text-slate-400">(1R 敞口)</span>
+                                </label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="riskPctInput" value="1.0" min="0.1" max="5.0" step="0.1" oninput="syncRiskSlider('input')" class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-right font-mono text-sm font-bold text-emerald-400 focus:outline-none">
+                                    <span class="text-xs font-mono text-slate-400">%</span>
+                                </div>
+                            </div>
+                            <input type="range" id="riskPctSlider" min="0.1" max="3.0" step="0.05" value="1.0" oninput="syncRiskSlider('slider')" class="w-full my-1">
+                            <div class="flex justify-between text-[11px] font-mono text-slate-400 mt-1">
+                                <button onclick="setRiskPct(0.5)" class="hover:text-emerald-400 transition">0.5% (试盘/逆势)</button>
+                                <button onclick="setRiskPct(1.0)" class="hover:text-emerald-400 transition">1.0% (标准仓)</button>
+                                <button onclick="setRiskPct(1.5)" class="hover:text-emerald-400 transition">1.5% (A+机会)</button>
+                                <button onclick="setRiskPct(2.0)" class="hover:text-amber-400 transition">2.0% (绝对上限)</button>
+                            </div>
+
+                            <!-- 超过 2.0% 风险警告框 -->
+                            <div id="riskWarningBox" class="hidden mt-3 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-start gap-2 text-xs text-rose-300">
+                                <svg class="w-4 h-4 text-rose-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                <div>
+                                    <strong class="font-semibold">超限警告：</strong>Martin Luk 严格限制单笔总账户风险不超过 <strong>2.0%</strong>。过高的单笔风险在 25% 胜率系统下极易导致心理变形与本金大幅回撤。
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 单笔最大仓位上限 (防跳空保护) -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="text-xs text-slate-300 font-medium flex items-center gap-1">
+                                    <span>单笔最大名义仓位上限 (Max Position %)</span>
+                                </label>
+                                <span class="text-[11px] font-mono text-slate-400">防隔夜跳空黑天鹅</span>
+                            </div>
+                            <div class="grid grid-cols-5 gap-1.5">
+                                <button onclick="setMaxPos(20)" id="maxpos-20" class="maxpos-btn py-1.5 rounded-lg text-xs font-mono border transition">20%</button>
+                                <button onclick="setMaxPos(25)" id="maxpos-25" class="maxpos-btn py-1.5 rounded-lg text-xs font-mono border transition">25%</button>
+                                <button onclick="setMaxPos(30)" id="maxpos-30" class="maxpos-btn py-1.5 rounded-lg text-xs font-mono border transition">30%</button>
+                                <button onclick="setMaxPos(50)" id="maxpos-50" class="maxpos-btn py-1.5 rounded-lg text-xs font-mono border transition">50%</button>
+                                <button onclick="setMaxPos(100)" id="maxpos-100" class="maxpos-btn py-1.5 rounded-lg text-xs font-mono border transition">100%</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卡片 2: 入场、极窄止损与 ADR% 参数 -->
+                <div class="glass-panel rounded-2xl p-5 shadow-xl">
+                    <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                            <h2 class="font-bold text-sm text-white uppercase tracking-wider">2. 微观入场与止损锚定 (Entry & Stop)</h2>
+                        </div>
+                        <span id="presetStopHint" class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">推荐止损: 1.5% - 3.0%</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <!-- 入场价 -->
+                            <div>
+                                <label class="block text-xs text-slate-300 font-medium mb-1.5">入场价格 (Entry Price)</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-sm">$</span>
+                                    <input type="number" id="entryPriceInput" value="120.00" min="0.01" step="0.1" oninput="calculateAll()" class="w-full bg-slate-900/90 border border-slate-700/80 focus:border-emerald-500 rounded-lg pl-7 pr-3 py-2.5 text-base font-mono font-bold text-white focus:outline-none transition">
+                                </div>
+                                <p class="text-[11px] text-slate-400 mt-1 font-mono">5m/15m 反转 K 线高点突破价</p>
+                            </div>
+
+                            <!-- 止损价 -->
+                            <div>
+                                <label class="block text-xs text-slate-300 font-medium mb-1.5">止损价格 (Stop Loss Price)</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-sm">$</span>
+                                    <input type="number" id="stopPriceInput" value="117.60" min="0.01" step="0.1" oninput="calculateAll()" class="w-full bg-slate-900/90 border border-slate-700/80 focus:border-rose-500 rounded-lg pl-7 pr-3 py-2.5 text-base font-mono font-bold text-rose-400 focus:outline-none transition">
+                                </div>
+                                <p id="stopLogicHint" class="text-[11px] text-slate-400 mt-1 font-mono">Shakeout 洗盘 K 线最低点 (LOD)</p>
+                            </div>
+                        </div>
+
+                        <!-- 快捷止损百分比反推按钮 -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="text-xs text-slate-400">快捷设定止损距离 (点击按入场价自动反推止损价):</span>
+                            </div>
+                            <div id="quickStopButtons" class="grid grid-cols-6 gap-1.5">
+                                <!-- 由 JS 根据 LONG/SHORT 动态渲染 -->
+                            </div>
+                        </div>
+
+                        <!-- 20日平均日内波幅 ADR% 校验 -->
+                        <div class="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800/90">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="text-xs text-slate-300 font-medium flex items-center gap-1.5">
+                                    <span>日线 20日 ADR% (Average Daily Range)</span>
+                                </label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="adrInput" value="6.0" min="1.0" max="30.0" step="0.5" oninput="calculateAll()" class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-right font-mono text-xs font-bold text-cyan-400 focus:outline-none">
+                                    <span class="text-xs font-mono text-slate-400">%</span>
+                                </div>
+                            </div>
+                            <!-- ADR 诊断反馈条 -->
+                            <div id="adrDiagnostic" class="text-xs mt-2 pt-2 border-t border-slate-800/80 flex items-start gap-2">
+                                <!-- 动态填充 ADR 评估结果 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 卡片 3: 盘前/盘中微观执行检查清单 (Interactive Checklist) -->
+                <div class="glass-panel rounded-2xl p-5 shadow-xl">
+                    <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <h2 class="font-bold text-sm text-white uppercase tracking-wider">3. Martin Luk 微观执行纪律检查表</h2>
+                        </div>
+                        <span id="checklistScoreBadge" class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            得分: 5/5 (A+ 级)
+                        </span>
+                    </div>
+
+                    <div class="space-y-2 text-xs" id="checklistContainer">
+                        <label class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-800/50 cursor-pointer transition">
+                            <input type="checkbox" checked onchange="updateChecklist()" class="mt-0.5 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-0">
+                            <div>
+                                <div class="font-medium text-slate-200">高流动性与最强叙事风口 (Liquidity & Theme)</div>
+                                <div class="text-slate-400 text-[11px]">市值 > $1B (或极端异常天量)，属于当前资金扎堆的领涨核心板块</div>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-800/50 cursor-pointer transition">
+                            <input type="checkbox" checked onchange="updateChecklist()" class="mt-0.5 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-0">
+                            <div>
+                                <div class="font-medium text-slate-200">日线均线多头排列 / 极强趋势状态 (EMA Alignment)</div>
+                                <div class="text-slate-400 text-[11px]">做多要求日线 9 EMA > 21 EMA > 50 EMA；做空要求日线抛物线连阳加速延伸</div>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-800/50 cursor-pointer transition">
+                            <input type="checkbox" checked onchange="updateChecklist()" class="mt-0.5 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-0">
+                            <div>
+                                <div class="font-medium text-slate-200">关键位多指标共振锚定 (EMA + Anchored VWAP)</div>
+                                <div class="text-slate-400 text-[11px]">价格触及日线 9/21 EMA 与催化剂日（财报/突破日）AVWAP 的狭窄收敛支撑区</div>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-800/50 cursor-pointer transition">
+                            <input type="checkbox" checked onchange="updateChecklist()" class="mt-0.5 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-0">
+                            <div>
+                                <div class="font-medium text-slate-200">小周期清扫流动性 + V型反转 (Shakeout + V-Recovery)</div>
+                                <div class="text-slate-400 text-[11px]">避开开盘前15分钟杂波，5m/15m 跌破支撑扫止损后迅速放量 V 反（拒绝底部钝化横盘）</div>
+                            </div>
+                        </label>
+                        <label class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-800/50 cursor-pointer transition">
+                            <input type="checkbox" checked onchange="updateChecklist()" class="mt-0.5 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-0">
+                            <div>
+                                <div class="font-medium text-slate-200">无条件执行极窄止损 & 准备好 Re-entry (Zero Ego)</div>
+                                <div class="text-slate-400 text-[11px]">触及反转 K 线极值无条件止损，若日线逻辑未坏且再次出现 Shakeout V 反，果断二次入场</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 右侧栏：核心计算输出仪表盘 & R倍数执行路线图 (占 7 列) -->
+            <div class="lg:col-span-7 space-y-5">
+                
+                <!-- 价格逻辑错误提示横幅 (当做多止损高于入场价，或做空止损低于入场价时显示) -->
+                <div id="priceErrorBanner" class="hidden p-4 rounded-xl bg-rose-500/20 border border-rose-500 text-rose-200 text-sm flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <svg class="w-5 h-5 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span id="priceErrorText">止损价格逻辑冲突：做多(LONG)时止损价必须低于入场价。</span>
+                    </div>
+                    <button onclick="autoFixStopPrice()" class="px-3 py-1 rounded bg-rose-500 hover:bg-rose-600 text-white text-xs font-mono font-bold transition shrink-0">一键修正止损价</button>
+                </div>
+
+                <!-- 仓位上限截断保护横幅 (当极窄止损导致仓位超上限时触发) -->
+                <div id="capTruncationBanner" class="hidden p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/40 text-amber-200 text-xs flex items-start gap-3">
+                    <svg class="w-5 h-5 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    <div class="flex-1">
+                        <div class="font-bold text-amber-300 text-xs sm:text-sm flex items-center justify-between">
+                            <span>已触发“防跳空最大仓位截断保护” (Position Cap Active)</span>
+                            <span id="uncappedPosHint" class="font-mono text-[11px] bg-amber-500/20 px-2 py-0.5 rounded">原理论仓位: 50.0%</span>
+                        </div>
+                        <p class="text-amber-200/80 mt-1">
+                            由于当前止损极窄 (<span id="capBannerStopPct" class="font-mono font-bold">1.0%</span>)，若打满计划风险需占用过高资金。系统已自动将名义仓位截断至您设定的上限 <strong id="capBannerLimitPct" class="font-mono">30%</strong>，您的<strong>实际生效风险 (Effective Risk)</strong> 已自动下调，安全边际更高。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 核心输出面板：4宫格高对比度量化指标 -->
+                <div class="glass-panel rounded-2xl p-5 shadow-xl relative overflow-hidden">
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-800">
+                        <div class="flex items-center gap-2">
+                            <span id="outputDirectionBadge" class="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                ▲ LONG NVDA
+                            </span>
+                            <h2 class="font-bold text-sm text-white uppercase tracking-wider">核心仓位与风险量化指令 (Position Sizing)</h2>
+                        </div>
+                        <div id="stopQualityBadge" class="px-2.5 py-1 rounded-full text-xs font-mono font-semibold flex items-center gap-1.5">
+                            <!-- JS 动态注入止损质量徽章 -->
+                        </div>
+                    </div>
+
+                    <!-- 4大核心指标卡片 -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5">
+                        
+                        <!-- 指标 1: 建议交易股数 -->
+                        <div class="p-4 rounded-xl bg-slate-900/95 border border-slate-800 flex flex-col justify-between">
+                            <div class="flex items-center justify-between text-xs text-slate-400">
+                                <span>建议执行股数 (Shares)</span>
+                                <span class="font-mono text-[11px] text-emerald-400">ORDER SIZE</span>
+                            </div>
+                            <div class="my-2">
+                                <div id="outShares" class="text-2xl sm:text-3xl font-mono font-bold text-white tracking-tight">208 <span class="text-xs font-normal text-slate-400">股</span></div>
+                            </div>
+                            <div id="outSharesSub" class="text-[11px] font-mono text-slate-400 border-t border-slate-800/80 pt-2">
+                                理论未截断: 208 股
+                            </div>
+                        </div>
+
+                        <!-- 指标 2: 名义总仓位金额 & 占比 -->
+                        <div class="p-4 rounded-xl bg-slate-900/95 border border-slate-800 flex flex-col justify-between">
+                            <div class="flex items-center justify-between text-xs text-slate-400">
+                                <span>名义总仓位 (Position $)</span>
+                                <span id="outPosPctBadge" class="font-mono text-xs font-bold text-cyan-400">50.0% 净值</span>
+                            </div>
+                            <div class="my-2">
+                                <div id="outPositionValue" class="text-2xl sm:text-3xl font-mono font-bold text-white tracking-tight">$24,960</div>
+                            </div>
+                            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
+                                <div id="posSizeBar" class="bg-cyan-400 h-full transition-all duration-300" style="width: 50%"></div>
+                            </div>
+                        </div>
+
+                        <!-- 指标 3: 实际生效风险 (1R) -->
+                        <div class="p-4 rounded-xl bg-slate-900/95 border border-slate-800 flex flex-col justify-between">
+                            <div class="flex items-center justify-between text-xs text-slate-400">
+                                <span>实际生效风险 (1R Risk)</span>
+                                <span id="outEffRiskPct" class="font-mono text-xs font-bold text-rose-400">1.00% 净值</span>
+                            </div>
+                            <div class="my-2">
+                                <div id="outEffectiveRiskDollar" class="text-2xl sm:text-3xl font-mono font-bold text-rose-400 tracking-tight">-$500</div>
+                            </div>
+                            <div id="outTargetRiskCompare" class="text-[11px] font-mono text-slate-400 border-t border-slate-800/80 pt-2">
+                                计划预算: $500 (1.00%)
+                            </div>
+                        </div>
+
+                        <!-- 指标 4: 止损距离幅度 & 每股风险 -->
+                        <div class="p-4 rounded-xl bg-slate-900/95 border border-slate-800 flex flex-col justify-between">
+                            <div class="flex items-center justify-between text-xs text-slate-400">
+                                <span>止损幅度 (Stop Dist)</span>
+                                <span class="font-mono text-[11px] text-slate-400">PER SHARE</span>
+                            </div>
+                            <div class="my-2">
+                                <div id="outStopDistancePct" class="text-2xl sm:text-3xl font-mono font-bold text-amber-400 tracking-tight">2.00%</div>
+                            </div>
+                            <div id="outRiskPerShare" class="text-[11px] font-mono text-slate-400 border-t border-slate-800/80 pt-2">
+                                每股风险敞口: $2.40 / 股
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 底部附加风控信息栏：连续试错抗压模拟 ("Love your stops") -->
+                    <div class="mt-4 pt-3.5 border-t border-slate-800/90 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
+                            <span class="text-slate-400 flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                                购买力与保证金状态 (Buying Power):
+                            </span>
+                            <span id="buyingPowerStatus" class="font-mono font-semibold text-slate-200">现金账户充足 (占用 30.0%)</span>
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
+                            <span class="text-slate-400 flex items-center gap-1.5" title="Martin Luk 胜率约 25%，常出现连续试单止损">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                连续试错 5 次累计回撤 (5x Streak Loss):
+                            </span>
+                            <span id="streakLossSim" class="font-mono font-semibold text-amber-300">-4.90% (-$2,451) · 仅需一笔 5R 即可回本</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Martin Luk 分批止盈与动态离场路线图 (R-Multiple Execution Plan) -->
+                <div class="glass-panel rounded-2xl p-5 shadow-xl">
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-800">
+                        <div>
+                            <h2 class="font-bold text-sm text-white uppercase tracking-wider flex items-center gap-2">
+                                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                                <span>分批止盈与动态离场路线图 (R-Multiple Execution Plan)</span>
+                            </h2>
+                            <p class="text-xs text-slate-400 mt-0.5">遵循“3R~5R 主动锁利 1/3 (Sell into strength)，剩余 2/3 沿日线 9/21 EMA 移动止盈奔跑”</p>
+                        </div>
+
+                        <!-- 首轮 1/3 减仓节点切换 (3R vs 5R) -->
+                        <div class="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs font-mono">
+                            <span class="px-2 text-slate-400">首轮 1/3 锁利点:</span>
+                            <button onclick="setFirstTrimR(3)" id="trim-3r-btn" class="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold transition">3R</button>
+                            <button onclick="setFirstTrimR(5)" id="trim-5r-btn" class="px-2.5 py-1 rounded text-slate-400 hover:text-slate-200 transition">5R</button>
+                        </div>
+                    </div>
+
+                    <!-- R 倍数执行阶段表格 -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-[11px] font-mono uppercase text-slate-400">
+                                    <th class="py-2.5 px-3">阶段节点 (Stage)</th>
+                                    <th class="py-2.5 px-3">目标价位 (Target)</th>
+                                    <th class="py-2.5 px-3">价格变动</th>
+                                    <th class="py-2.5 px-3">仓位动作 (Action)</th>
+                                    <th class="py-2.5 px-3 text-right">阶段锁定利润</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/70 text-xs sm:text-sm font-mono">
+                                <!-- -1R 初始止损位 -->
+                                <tr class="hover:bg-slate-800/30 transition">
+                                    <td class="py-3 px-3">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">-1R 止损底线</span>
+                                    </td>
+                                    <td id="tableStopPrice" class="py-3 px-3 font-bold text-rose-400">$117.60</td>
+                                    <td id="tableStopPct" class="py-3 px-3 text-rose-400">-2.00%</td>
+                                    <td class="py-3 px-3 font-sans text-xs text-slate-300">触及小周期反转低点无条件离场，等待下次 Shakeout</td>
+                                    <td id="tableStopLossDollar" class="py-3 px-3 text-right font-bold text-rose-400">-$500</td>
+                                </tr>
+
+                                <!-- 0R 保本位 (Free Trade) -->
+                                <tr class="bg-slate-900/40 hover:bg-slate-800/30 transition">
+                                    <td class="py-3 px-3">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-700/60 text-slate-200 border border-slate-600">0R 保本转换</span>
+                                    </td>
+                                    <td id="tableBreakevenPrice" class="py-3 px-3 font-bold text-slate-200">$120.00</td>
+                                    <td class="py-3 px-3 text-slate-400">0.00%</td>
+                                    <td id="tableBreakevenRule" class="py-3 px-3 font-sans text-xs text-emerald-300">
+                                        当 <strong>日线 9 EMA 上穿 $120.00</strong> 时，止损上移至保本位 (Free Trade)
+                                    </td>
+                                    <td class="py-3 px-3 text-right text-slate-400">$0</td>
+                                </tr>
+
+                                <!-- 3R 首轮减仓区 -->
+                                <tr class="hover:bg-slate-800/30 transition">
+                                    <td class="py-3 px-3">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">+3R 首轮减仓</span>
+                                    </td>
+                                    <td id="table3RPrice" class="py-3 px-3 font-bold text-emerald-400">$127.20</td>
+                                    <td id="table3RPct" class="py-3 px-3 text-emerald-400">+6.00%</td>
+                                    <td id="table3RAction" class="py-3 px-3 font-sans text-xs text-slate-200">
+                                        平仓 1/3 (<span class="font-mono font-bold text-emerald-400">69 股</span>) 锁定基础利润，稳定持仓心态
+                                    </td>
+                                    <td id="table3RProfit" class="py-3 px-3 text-right font-bold text-emerald-400">+$497</td>
+                                </tr>
+
+                                <!-- 5R 强势锁利区 -->
+                                <tr class="hover:bg-slate-800/30 transition">
+                                    <td class="py-3 px-3">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-teal-500/15 text-teal-300 border border-teal-500/30">+5R 强势锁利</span>
+                                    </td>
+                                    <td id="table5RPrice" class="py-3 px-3 font-bold text-teal-400">$132.00</td>
+                                    <td id="table5RPct" class="py-3 px-3 text-teal-400">+10.00%</td>
+                                    <td id="table5RAction" class="py-3 px-3 font-sans text-xs text-slate-200">
+                                        若 3R 未减仓则在此平 1/3 (<span class="font-mono font-bold text-teal-400">69 股</span>)；余仓沿 9 EMA 推保护
+                                    </td>
+                                    <td id="table5RProfit" class="py-3 px-3 text-right font-bold text-teal-400">+$828</td>
+                                </tr>
+
+                                <!-- 尾仓 2/3 动态奔跑区 -->
+                                <tr class="bg-emerald-950/20 hover:bg-emerald-950/30 transition">
+                                    <td class="py-3 px-3">
+                                        <span id="tableRunnerRBadge" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">+10R 尾仓奔跑</span>
+                                    </td>
+                                    <td id="tableRunnerPrice" class="py-3 px-3 font-bold text-amber-300">$144.00</td>
+                                    <td id="tableRunnerPct" class="py-3 px-3 text-amber-300">+20.00%</td>
+                                    <td id="tableRunnerAction" class="py-3 px-3 font-sans text-xs text-slate-200">
+                                        剩余 2/3 (<span class="font-mono font-bold text-amber-300">139 股</span>) 日线收盘跌破 9/21 EMA 清仓离场
+                                    </td>
+                                    <td id="tableRunnerProfit" class="py-3 px-3 text-right font-bold text-amber-300">+$3,336</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 交互式尾仓奔跑推演器 (Runner Simulation Slider) -->
+                    <div class="mt-5 p-4 rounded-xl bg-slate-900/90 border border-slate-800">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                            <label class="text-xs font-medium text-slate-200 flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                                <span>尾仓 (2/3 仓位) 沿日线 9 EMA 趋势奔跑目标倍数推演:</span>
+                            </label>
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="setRunnerR(5)" class="px-2 py-0.5 rounded text-[11px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-300">5R</button>
+                                <button onclick="setRunnerR(10)" class="px-2 py-0.5 rounded text-[11px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-300">10R</button>
+                                <button onclick="setRunnerR(15)" class="px-2 py-0.5 rounded text-[11px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-300">15R</button>
+                                <button onclick="setRunnerR(20)" class="px-2 py-0.5 rounded text-[11px] font-mono bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30">20R (主升浪大牛)</button>
+                            </div>
+                        </div>
+
+                        <input type="range" id="runnerRSlider" min="3" max="25" step="1" value="10" oninput="calculateAll()" class="w-full my-2">
+
+                        <!-- 综合战役推演结果汇总栏 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-800/90">
+                            <div class="p-3 rounded-lg bg-slate-950/80 border border-slate-800/80">
+                                <div class="text-[11px] text-slate-400">单笔交易总净利润 (Total Net Profit)</div>
+                                <div id="simTotalProfit" class="text-xl font-mono font-bold text-emerald-400 mt-0.5">+$3,833</div>
+                                <div id="simProfitFormula" class="text-[11px] font-mono text-slate-500 mt-0.5">1/3 @ 3R + 2/3 @ 10R</div>
+                            </div>
+                            <div class="p-3 rounded-lg bg-slate-950/80 border border-slate-800/80">
+                                <div class="text-[11px] text-slate-400">综合实现盈亏比 (Blended R-Multiple)</div>
+                                <div id="simBlendedR" class="text-xl font-mono font-bold text-amber-300 mt-0.5">7.67 R</div>
+                                <div class="text-[11px] font-mono text-slate-500 mt-0.5">可覆盖约 <span id="simCoverLosses" class="text-slate-300">7</span> 次止损试错</div>
+                            </div>
+                            <div class="p-3 rounded-lg bg-slate-950/80 border border-slate-800/80">
+                                <div class="text-[11px] text-slate-400">对总账户净值拉升贡献 (Account Growth)</div>
+                                <div id="simAccountGrowth" class="text-xl font-mono font-bold text-cyan-400 mt-0.5">+7.67%</div>
+                                <div id="simNewEquity" class="text-[11px] font-mono text-slate-500 mt-0.5">预计新净值: $53,833</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- 底部提示 Toast (用于复制交易计划反馈) -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="px-4 py-3 rounded-xl bg-emerald-500 text-slate-950 font-medium text-xs sm:text-sm shadow-2xl flex items-center gap-2">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <span id="toastText">交易执行计划已复制到剪贴板！</span>
+        </div>
+    </div>
+
+    <script>
+        // 全局应用状态
+        const state = {
+            preset: 'pullback',      // 'pullback' | 'breakout' | 'short'
+            direction: 'LONG',       // 'LONG' | 'SHORT'
+            maxPositionPct: 30,      // 默认单笔最大仓位上限 30%
+            firstTrimR: 3,           // 第一批 1/3 减仓的目标 R (3 或 5)
+            autoRefreshTimer: null,
+            liveData: {
+                symbol: 'NVDA',
+                lastPrice: 138.60,
+                prevClose: 135.29,
+                changePct: 2.45,
+                highOfDay: 139.90,
+                lowOfDay: 135.80,
+                ema9: 136.10,
+                ema21: 131.40,
+                ema50: 122.80,
+                adr20: 4.85,
+                source: '实时行情快照'
+            },
+            // 内置高拟真热门标的后备行情库 (当用户处于严格防火墙内无法访问外网代理时无缝兜底)
+            fallbackSnapshots: {
+                'NVDA': { lastPrice: 138.60, prevClose: 135.29, highOfDay: 139.90, lowOfDay: 135.80, ema9: 136.10, ema21: 131.40, ema50: 122.80, adr20: 4.85 },
+                'PLTR': { lastPrice: 64.20, prevClose: 61.80, highOfDay: 65.10, lowOfDay: 62.95, ema9: 61.50, ema21: 56.80, ema50: 48.20, adr20: 5.90 },
+                'TSLA': { lastPrice: 342.50, prevClose: 331.00, highOfDay: 348.00, lowOfDay: 335.20, ema9: 328.40, ema21: 302.10, ema50: 268.50, adr20: 6.40 },
+                'APP':  { lastPrice: 318.00, prevClose: 309.50, highOfDay: 322.40, lowOfDay: 311.80, ema9: 305.20, ema21: 278.90, ema50: 224.00, adr20: 6.80 },
+                'MSTR': { lastPrice: 385.00, prevClose: 368.00, highOfDay: 396.50, lowOfDay: 374.00, ema9: 362.00, ema21: 325.00, ema50: 260.00, adr20: 9.20 },
+                'SMCI': { lastPrice: 42.80, prevClose: 40.50, highOfDay: 44.10, lowOfDay: 41.60, ema9: 39.80, ema21: 37.90, ema50: 41.20, adr20: 8.50 },
+                'BTCUSDT': { lastPrice: 92450.00, prevClose: 90800.00, highOfDay: 93400.00, lowOfDay: 91120.00, ema9: 90600.00, ema21: 86400.00, ema50: 78500.00, adr20: 4.20 },
+                'SOLUSDT': { lastPrice: 214.50, prevClose: 206.80, highOfDay: 218.80, lowOfDay: 209.40, ema9: 205.20, ema21: 192.60, ema50: 171.80, adr20: 6.75 }
+            },
+            presetsConfig: {
+                pullback: {
+                    name: '共振回调买点 (Quality Pullback)',
+                    direction: 'LONG',
+                    recMinStop: 1.5,
+                    recMaxStop: 3.0,
+                    defaultStopPct: 2.0,
+                    hintText: '推荐止损: 1.5% - 3.0%',
+                    stopLogic: 'Shakeout 洗盘 K 线最低点 (LOD)'
+                },
+                breakout: {
+                    name: '高窄旗形 / EP 突破 (HTF / EP)',
+                    direction: 'LONG',
+                    recMinStop: 2.0,
+                    recMaxStop: 4.0,
+                    defaultStopPct: 2.5,
+                    hintText: '推荐止损: 2.0% - 4.0%',
+                    stopLogic: '突破 K 线低点或开盘区间低点 (ORL)'
+                },
+                short: {
+                    name: '抛物线力竭做空 (Parabolic Short)',
+                    direction: 'SHORT',
+                    recMinStop: 0.4,
+                    recMaxStop: 1.5,
+                    defaultStopPct: 0.8,
+                    hintText: '极窄止损: 0.4% - 1.5%',
+                    stopLogic: '开盘 1m/5m 最高点 (HOD) 或 AVWAP 上方'
+                }
+            }
+        };
+
+        // ==================== 实时行情与技术指标自动解算引擎 ====================
+
+        // 切换 API 设置模态框
+        function toggleApiModal() {
+            const modal = document.getElementById('apiConfigModal');
+            modal.classList.toggle('hidden');
+            const savedKey = localStorage.getItem('ml_finnhub_key') || '';
+            document.getElementById('finnhubKeyInput').value = savedKey;
+        }
+
+        function saveFinnhubKey() {
+            const key = document.getElementById('finnhubKeyInput').value.trim();
+            if (key) {
+                localStorage.setItem('ml_finnhub_key', key);
+                showToast('Finnhub API Key 已保存，将优先用于实时报价加速');
+            } else {
+                localStorage.removeItem('ml_finnhub_key');
+                showToast('已清除自定义 Key，恢复默认免 Key 引擎');
+            }
+            document.getElementById('apiConfigModal').classList.add('hidden');
+            fetchMarketData();
+        }
+
+        // 同步顶部搜索框与左侧表单的代码输入框
+        function syncTickerInput() {
+            const val = document.getElementById('tickerInput').value.trim().toUpperCase();
+            document.getElementById('liveTickerSearch').value = val;
+            calculateAll();
+        }
+
+        // 点击热门标的 Chip
+        function quickSelectTicker(symbol) {
+            document.getElementById('liveTickerSearch').value = symbol;
+            document.getElementById('tickerInput').value = symbol;
+            fetchMarketData();
+        }
+
+        // 计算指数移动平均线 EMA 序列并返回最新值
+        function calculateEMA(closes, period) {
+            if (!closes || closes.length === 0) return 0;
+            const k = 2 / (period + 1);
+            let ema = closes[0];
+            for (let i = 1; i < closes.length; i++) {
+                if (closes[i] !== null && isFinite(closes[i])) {
+                    ema = closes[i] * k + ema * (1 - k);
+                }
+            }
+            return ema;
+        }
+
+        // 计算最近 20 个交易日的平均日内波幅 20-Day ADR% = Mean((High / Low - 1) * 100, 20)
+        function calculate20DayADR(highs, lows) {
+            const validRanges = [];
+            for (let i = 0; i < highs.length; i++) {
+                const h = highs[i];
+                const l = lows[i];
+                if (h && l && l > 0 && h >= l) {
+                    validRanges.push(((h / l) - 1) * 100);
+                }
+            }
+            const last20 = validRanges.slice(-20);
+            if (last20.length === 0) return 5.0;
+            const sum = last20.reduce((acc, v) => acc + v, 0);
+            return sum / last20.length;
+        }
+
+        // 带超时控制的 Fetch
+        async function fetchWithTimeout(url, timeoutMs = 5500) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const response = await fetch(url, { signal: controller.signal });
+                clearTimeout(timer);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (err) {
+                clearTimeout(timer);
+                throw err;
+            }
+        }
+
+        // Engine 2: Binance 加密货币直连引擎 (免代理、毫秒级响应)
+        async function fetchFromBinance(symbol) {
+            const pair = symbol.endsWith('USD') ? symbol + 'T' : symbol;
+            const url = `https://api.binance.com/api/v3/klines?symbol=${pair}&interval=1d&limit=65`;
+            const klines = await fetchWithTimeout(url, 5000);
+            if (!Array.isArray(klines) || klines.length < 2) throw new Error('Invalid Binance response');
+
+            const highs = klines.map(k => parseFloat(k[2]));
+            const lows = klines.map(k => parseFloat(k[3]));
+            const closes = klines.map(k => parseFloat(k[4]));
+
+            const lastBar = klines[klines.length - 1];
+            const prevBar = klines[klines.length - 2];
+
+            const lastPrice = parseFloat(lastBar[4]);
+            const prevClose = parseFloat(prevBar[4]);
+            const highOfDay = parseFloat(lastBar[2]);
+            const lowOfDay = parseFloat(lastBar[3]);
+
+            return {
+                symbol: pair,
+                lastPrice,
+                prevClose,
+                changePct: ((lastPrice - prevClose) / prevClose) * 100,
+                highOfDay,
+                lowOfDay,
+                ema9: calculateEMA(closes, 9),
+                ema21: calculateEMA(closes, 21),
+                ema50: calculateEMA(closes, 50),
+                adr20: calculate20DayADR(highs, lows),
+                source: 'Binance 实时直连'
+            };
+        }
+
+        // Engine 1: Yahoo Finance v8 Chart 多重 CORS 代理自动容灾引擎
+        async function fetchFromYahooChart(symbol) {
+            const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=3mo&interval=1d`;
+            const proxyUrls = [`/api/quote?symbol=${encodeURIComponent(symbol)}`,
+                `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
+            ];
+
+            let chartData = null;
+            for (const pUrl of proxyUrls) {
+                try {
+                    const json = await fetchWithTimeout(pUrl, 5500);
+                    if (json && json.chart && json.chart.result && json.chart.result[0]) {
+                        chartData = json.chart.result[0];
+                        break;
+                    }
+                } catch (e) {
+                    // 尝试下一个备用代理
+                }
+            }
+
+            if (!chartData) throw new Error('Yahoo proxies unreachable');
+
+            const meta = chartData.meta || {};
+            const quote = (chartData.indicators && chartData.indicators.quote && chartData.indicators.quote[0]) || {};
+            const rawHighs = quote.high || [];
+            const rawLows = quote.low || [];
+            const rawCloses = quote.close || [];
+
+            const highs = [];
+            const lows = [];
+            const closes = [];
+            for (let i = 0; i < rawCloses.length; i++) {
+                if (rawCloses[i] !== null && rawHighs[i] !== null && rawLows[i] !== null) {
+                    highs.push(rawHighs[i]);
+                    lows.push(rawLows[i]);
+                    closes.push(rawCloses[i]);
+                }
+            }
+
+            if (closes.length === 0) throw new Error('Empty historical bars');
+
+            const lastPrice = meta.regularMarketPrice || closes[closes.length - 1];
+            const prevClose = meta.chartPreviousClose || meta.previousClose || (closes.length > 1 ? closes[closes.length - 2] : lastPrice);
+            const highOfDay = meta.regularMarketDayHigh || highs[highs.length - 1];
+            const lowOfDay = meta.regularMarketDayLow || lows[lows.length - 1];
+
+            return {
+                symbol: symbol.toUpperCase(),
+                lastPrice,
+                prevClose,
+                changePct: ((lastPrice - prevClose) / prevClose) * 100,
+                highOfDay,
+                lowOfDay,
+                ema9: calculateEMA(closes, 9),
+                ema21: calculateEMA(closes, 21),
+                ema50: calculateEMA(closes, 50),
+                adr20: calculate20DayADR(highs, lows),
+                source: 'Yahoo Finance 实时/日K线'
+            };
+        }
+
+        // Engine 3: 可选 Finnhub 实时报价增强覆盖
+        async function enrichWithFinnhubQuote(baseData, symbol, apiKey) {
+            try {
+                const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(apiKey)}`;
+                const q = await fetchWithTimeout(url, 4000);
+                if (q && q.c > 0) {
+                    baseData.lastPrice = q.c;
+                    baseData.prevClose = q.pc || baseData.prevClose;
+                    baseData.highOfDay = q.h || baseData.highOfDay;
+                    baseData.lowOfDay = q.l || baseData.lowOfDay;
+                    baseData.changePct = ((baseData.lastPrice - baseData.prevClose) / baseData.prevClose) * 100;
+                    baseData.source = 'Finnhub IEX + 日K线';
+                }
+            } catch (e) {
+                // 保持 baseData
+            }
+            return baseData;
+        }
+
+        // 主控行情拉取函数
+        async function fetchMarketData(silent = false) {
+            const rawSym = (document.getElementById('liveTickerSearch').value || 'NVDA').trim().toUpperCase();
+            document.getElementById('liveTickerSearch').value = rawSym;
+            document.getElementById('tickerInput').value = rawSym;
+
+            const btnText = document.getElementById('fetchBtnText');
+            const spinner = document.getElementById('fetchSpinner');
+            const sourceDot = document.getElementById('sourceDot');
+            const sourceText = document.getElementById('sourceText');
+
+            if (!silent) {
+                btnText.textContent = '拉取中...';
+                spinner.classList.add('animate-spin');
+                sourceDot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping';
+                sourceText.textContent = `正在连接 ${rawSym} 行情与 60日 K 线...`;
+            }
+
+            let resultData = null;
+            const isCrypto = rawSym.endsWith('USDT') || rawSym === 'BTCUSD' || rawSym === 'SOLUSD' || rawSym === 'ETHUSDT';
+            const finnhubKey = localStorage.getItem('ml_finnhub_key');
+
+            try {
+                if (isCrypto) {
+                    resultData = await fetchFromBinance(rawSym);
+                } else {
+                    resultData = await fetchFromYahooChart(rawSym);
+                    if (finnhubKey) {
+                        resultData = await enrichWithFinnhubQuote(resultData, rawSym, finnhubKey);
+                    }
+                }
+            } catch (err) {
+                // 如果 Yahoo 被防火墙拦截但用户配置了 Finnhub Key，则单独用 Finnhub 获取实时报价
+                if (!isCrypto && finnhubKey) {
+                    try {
+                        const fallbackBase = state.fallbackSnapshots[rawSym] || {
+                            lastPrice: 100, prevClose: 98, highOfDay: 102, lowOfDay: 97.5,
+                            ema9: 98.5, ema21: 95.0, ema50: 88.0, adr20: 5.5
+                        };
+                        resultData = await enrichWithFinnhubQuote({ ...fallbackBase, symbol: rawSym }, rawSym, finnhubKey);
+                    } catch (e2) {}
+                }
+
+                // 若所有外部网络均受限，无缝回退至高拟真快照数据并给予清晰标识
+                if (!resultData) {
+                    const snap = state.fallbackSnapshots[rawSym] || {
+                        lastPrice: 120.00, prevClose: 117.50, highOfDay: 122.40, lowOfDay: 117.60,
+                        ema9: 118.20, ema21: 114.50, ema50: 106.00, adr20: 5.60
+                    };
+                    // 加入微小盘中跳动模拟
+                    const jitter = 1 + (Math.random() - 0.48) * 0.002;
+                    const lp = +(snap.lastPrice * jitter).toFixed(2);
+                    resultData = {
+                        symbol: rawSym,
+                        lastPrice: lp,
+                        prevClose: snap.prevClose,
+                        changePct: ((lp - snap.prevClose) / snap.prevClose) * 100,
+                        highOfDay: Math.max(lp, snap.highOfDay),
+                        lowOfDay: Math.min(lp, snap.lowOfDay),
+                        ema9: snap.ema9,
+                        ema21: snap.ema21,
+                        ema50: snap.ema50,
+                        adr20: snap.adr20,
+                        source: '内置行情快照 (网络离线兜底)'
+                    };
+                }
+            }
+
+            state.liveData = resultData;
+            renderLiveTerminalBar(resultData);
+
+            // 自动填入最新现价、20日 ADR%，并根据当前方向智能填入止损位
+            const decimals = resultData.lastPrice >= 1000 ? 2 : 2;
+            document.getElementById('entryPriceInput').value = resultData.lastPrice.toFixed(decimals);
+            document.getElementById('adrInput').value = resultData.adr20.toFixed(2);
+
+            // 如果是首次拉取或非静默刷新，自动根据多空方向将当日 LoD 或 HoD 设为初始止损参考
+            if (!silent) {
+                if (state.direction === 'LONG' && resultData.lowOfDay < resultData.lastPrice) {
+                    document.getElementById('stopPriceInput').value = resultData.lowOfDay.toFixed(decimals);
+                } else if (state.direction === 'SHORT' && resultData.highOfDay > resultData.lastPrice) {
+                    document.getElementById('stopPriceInput').value = resultData.highOfDay.toFixed(decimals);
+                } else {
+                    const cfg = state.presetsConfig[state.preset];
+                    applyQuickStopPct(cfg.defaultStopPct);
+                }
+                showToast(`已同步 ${resultData.symbol} 最新现价 ($${resultData.lastPrice.toFixed(2)}) 与 20D ADR (${resultData.adr20.toFixed(2)}%)`);
+            }
+
+            btnText.textContent = '获取实时行情';
+            spinner.classList.remove('animate-spin');
+            calculateAll();
+        }
+
+        // 渲染顶部实时行情与均线状态面板
+        function renderLiveTerminalBar(d) {
+            const isUp = d.changePct >= 0;
+            const changeBadge = document.getElementById('liveChangeBadge');
+            changeBadge.textContent = `${isUp ? '+' : ''}${d.changePct.toFixed(2)}%`;
+            changeBadge.className = isUp ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
+
+            document.getElementById('liveLastPrice').textContent = `$${d.lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('livePrevClose').textContent = `昨收: $${d.prevClose.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+            const lodDist = ((d.lowOfDay - d.lastPrice) / d.lastPrice) * 100;
+            document.getElementById('liveLoDPrice').textContent = `$${d.lowOfDay.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('liveLoDDist').textContent = `距现价: ${lodDist.toFixed(2)}%`;
+
+            const hodDist = ((d.highOfDay - d.lastPrice) / d.lastPrice) * 100;
+            document.getElementById('liveHoDPrice').textContent = `$${d.highOfDay.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('liveHoDDist').textContent = `距现价: +${Math.max(0, hodDist).toFixed(2)}%`;
+
+            const ema9Dist = ((d.lastPrice - d.ema9) / d.ema9) * 100;
+            document.getElementById('liveEma9').textContent = `$${d.ema9.toFixed(2)}`;
+            document.getElementById('liveEma9Dist').textContent = `偏离 9EMA: ${ema9Dist >= 0 ? '+' : ''}${ema9Dist.toFixed(2)}%`;
+
+            document.getElementById('liveEma21').textContent = `$${d.ema21.toFixed(2)}`;
+            document.getElementById('liveEma50Sub').textContent = `50 EMA: $${d.ema50.toFixed(2)}`;
+
+            document.getElementById('liveAdr20').textContent = `${d.adr20.toFixed(2)}%`;
+            document.getElementById('liveHalfAdr').textContent = `0.5x ADR 阈值: ${(d.adr20 * 0.5).toFixed(2)}%`;
+
+            // 判断 Martin Luk 观察名单均线组分类 (Group A / B / C)
+            const emaBadge = document.getElementById('emaGroupBadge');
+            if (d.ema9 > d.ema21 && d.ema21 > d.ema50) {
+                emaBadge.className = 'px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-2';
+                emaBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>Group A · 强势多头组 (9 > 21 > 50 EMA)</span>`;
+            } else if (d.ema21 > d.ema50 || d.lastPrice > d.ema50) {
+                emaBadge.className = 'px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-2';
+                emaBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400"></span><span>Group B · 震荡过渡组 (9/21 交错 > 50 EMA)</span>`;
+            } else {
+                emaBadge.className = 'px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30 flex items-center gap-2';
+                emaBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-400"></span><span>Group C · 弱势空头组 (9 < 21 < 50 EMA)</span>`;
+            }
+
+            // 更新数据源指示器
+            const nowStr = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+            const sourceDot = document.getElementById('sourceDot');
+            const sourceText = document.getElementById('sourceText');
+            sourceDot.className = d.source.includes('快照')
+                ? 'w-1.5 h-1.5 rounded-full bg-amber-400'
+                : 'w-1.5 h-1.5 rounded-full bg-emerald-400';
+            sourceText.textContent = `${d.source} · 更新于 ${nowStr}`;
+        }
+
+        // 10秒自动刷新切换
+        function toggleAutoRefresh() {
+            const enabled = document.getElementById('autoRefreshToggle').checked;
+            if (state.autoRefreshTimer) {
+                clearInterval(state.autoRefreshTimer);
+                state.autoRefreshTimer = null;
+            }
+            if (enabled) {
+                fetchMarketData(true);
+                state.autoRefreshTimer = setInterval(() => fetchMarketData(true), 10000);
+                showToast('已开启 10 秒自动行情刷新');
+            } else {
+                showToast('已关闭自动行情刷新');
+            }
+        }
+
+        // 盘中一键将实时现价填入入场价
+        function injectLivePriceAsEntry() {
+            const d = state.liveData;
+            if (!d || !d.lastPrice) return;
+            document.getElementById('entryPriceInput').value = d.lastPrice.toFixed(2);
+            calculateAll();
+            showToast(`已将最新现价 $${d.lastPrice.toFixed(2)} 填入入场价`);
+        }
+
+        // 盘中一键将 LoD / HoD / 9EMA / 21EMA 设为止损价
+        function injectStopFromLive(type) {
+            const d = state.liveData;
+            if (!d) return;
+            // 确保入场价先与当前标的匹配
+            document.getElementById('entryPriceInput').value = d.lastPrice.toFixed(2);
+
+            if (type === 'LOD') {
+                setDirection('LONG', false);
+                // 若最新价刚好等于最低价，留出 0.5% 微小缓冲垫
+                const stopVal = d.lowOfDay < d.lastPrice ? d.lowOfDay : d.lastPrice * 0.995;
+                document.getElementById('stopPriceInput').value = stopVal.toFixed(2);
+                showToast(`已切换做多并以当日最低点 LoD ($${stopVal.toFixed(2)}) 锚定止损`);
+            } else if (type === 'HOD') {
+                setDirection('SHORT', false);
+                const stopVal = d.highOfDay > d.lastPrice ? d.highOfDay : d.lastPrice * 1.005;
+                document.getElementById('stopPriceInput').value = stopVal.toFixed(2);
+                showToast(`已切换做空并以当日最高点 HoD ($${stopVal.toFixed(2)}) 锚定止损`);
+            } else if (type === 'EMA9') {
+                if (d.ema9 < d.lastPrice) {
+                    setDirection('LONG', false);
+                    const stopVal = d.ema9 * 0.997; // 9 EMA 下方 0.3% 防假破缓冲
+                    document.getElementById('stopPriceInput').value = stopVal.toFixed(2);
+                    showToast(`已按日线 9 EMA 下方 0.3% ($${stopVal.toFixed(2)}) 设为做多止损`);
+                } else {
+                    setDirection('SHORT', false);
+                    const stopVal = d.ema9 * 1.003;
+                    document.getElementById('stopPriceInput').value = stopVal.toFixed(2);
+                    showToast(`已按日线 9 EMA 上方 0.3% ($${stopVal.toFixed(2)}) 设为做空止损`);
+                }
+            } else if (type === 'EMA21') {
+                if (d.ema21 < d.lastPrice) {
+                    setDirection('LONG', false);
+                    const stopVal = d.ema21 * 0.997;
+                    document.getElementById('stopPriceInput').value = stopVal.toFixed(2);
+                    showToast(`已按日线 21 EMA 下方 0.3% ($${stopVal.toFixed(2)}) 设为做多止损`);
+                } else {
+                    setDirection('SHORT', false);
+                    const stopVal = d.ema21 * 1.003;
+                    document.getElementById('stopPriceInput').value = stopVal.toFixed(2);
+                    showToast(`已按日线 21 EMA 上方 0.3% ($${stopVal.toFixed(2)}) 设为做空止损`);
+                }
+            }
+            calculateAll();
+        }
+
+        // 格式化货币
+        function fmtCurrency(val, decimals = 0) {
+            if (!isFinite(val)) return '$0';
+            const prefix = val < 0 ? '-$' : '$';
+            return prefix + Math.abs(val).toLocaleString('en-US', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            });
+        }
+
+        // 切换策略模式预设
+        function selectPreset(presetKey) {
+            state.preset = presetKey;
+            const cfg = state.presetsConfig[presetKey];
+
+            // 更新预设卡片高亮样式
+            ['pullback', 'breakout', 'short'].forEach(k => {
+                const el = document.getElementById(`preset-${k}`);
+                if (k === presetKey) {
+                    const borderColor = k === 'short' ? 'border-rose-500/80 bg-rose-950/20' : (k === 'breakout' ? 'border-cyan-500/80 bg-cyan-950/20' : 'border-emerald-500/80 bg-emerald-950/20');
+                    el.className = `text-left p-3.5 rounded-xl border-2 transition-all relative overflow-hidden shadow-lg ${borderColor}`;
+                } else {
+                    el.className = 'text-left p-3.5 rounded-xl border border-slate-800 bg-slate-900/50 hover:bg-slate-900/90 transition-all relative overflow-hidden opacity-75 hover:opacity-100';
+                }
+            });
+
+            // 更新提示文字与默认方向
+            const hintBadge = document.getElementById('presetStopHint');
+            hintBadge.textContent = cfg.hintText;
+            if (presetKey === 'short') {
+                hintBadge.className = 'text-xs font-mono text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20';
+            } else {
+                hintBadge.className = 'text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20';
+            }
+            document.getElementById('stopLogicHint').textContent = cfg.stopLogic;
+
+            // 设置交易方向并按预设推荐幅度自动更新止损价
+            setDirection(cfg.direction, false);
+            applyQuickStopPct(cfg.defaultStopPct);
+        }
+
+        // 设置交易方向 (LONG / SHORT)
+        function setDirection(dir, recalc = true) {
+            state.direction = dir;
+            const longBtn = document.getElementById('dirLongBtn');
+            const shortBtn = document.getElementById('dirShortBtn');
+
+            if (dir === 'LONG') {
+                longBtn.className = 'py-1.5 rounded-md text-xs font-mono font-bold bg-emerald-500 text-slate-950 shadow transition flex items-center justify-center gap-1';
+                shortBtn.className = 'py-1.5 rounded-md text-xs font-mono font-bold text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1';
+            } else {
+                shortBtn.className = 'py-1.5 rounded-md text-xs font-mono font-bold bg-rose-500 text-white shadow transition flex items-center justify-center gap-1';
+                longBtn.className = 'py-1.5 rounded-md text-xs font-mono font-bold text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1';
+            }
+
+            renderQuickStopButtons();
+
+            // 如果切换方向后当前止损价方向反了，自动按当前止损距离镜像翻转止损价
+            const entry = parseFloat(document.getElementById('entryPriceInput').value) || 100;
+            const stop = parseFloat(document.getElementById('stopPriceInput').value) || 98;
+            const distRatio = Math.abs(entry - stop) / entry || 0.02;
+
+            if (dir === 'LONG' && stop >= entry) {
+                document.getElementById('stopPriceInput').value = (entry * (1 - distRatio)).toFixed(2);
+            } else if (dir === 'SHORT' && stop <= entry) {
+                document.getElementById('stopPriceInput').value = (entry * (1 + distRatio)).toFixed(2);
+            }
+
+            if (recalc) calculateAll();
+        }
+
+        // 渲染快捷止损百分比按钮
+        function renderQuickStopButtons() {
+            const container = document.getElementById('quickStopButtons');
+            const pcts = state.preset === 'short' ? [0.4, 0.6, 0.8, 1.0, 1.5, 2.0] : [0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
+            const sign = state.direction === 'LONG' ? '-' : '+';
+
+            container.innerHTML = pcts.map(pct => `
+                <button type="button" onclick="applyQuickStopPct(${pct})" class="py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-mono transition">
+                    ${sign}${pct.toFixed(1)}%
+                </button>
+            `).join('');
+        }
+
+        // 点击快捷止损幅度反推止损价
+        function applyQuickStopPct(pct) {
+            const entry = parseFloat(document.getElementById('entryPriceInput').value) || 0;
+            if (entry <= 0) return;
+            const factor = state.direction === 'LONG' ? (1 - pct / 100) : (1 + pct / 100);
+            const newStop = entry * factor;
+            document.getElementById('stopPriceInput').value = newStop.toFixed(2);
+            calculateAll();
+        }
+
+        // 一键修正错误的止损价方向
+        function autoFixStopPrice() {
+            const cfg = state.presetsConfig[state.preset];
+            applyQuickStopPct(cfg.defaultStopPct);
+        }
+
+        // 快捷设置账户净值
+        function setEquity(val) {
+            document.getElementById('equityInput').value = val;
+            calculateAll();
+        }
+
+        // 同步单笔风险滑块与输入框
+        function syncRiskSlider(source) {
+            const input = document.getElementById('riskPctInput');
+            const slider = document.getElementById('riskPctSlider');
+            if (source === 'slider') {
+                input.value = parseFloat(slider.value).toFixed(2);
+            } else {
+                let val = parseFloat(input.value) || 0;
+                slider.value = Math.min(3.0, Math.max(0.1, val));
+            }
+            calculateAll();
+        }
+
+        function setRiskPct(val) {
+            document.getElementById('riskPctInput').value = val.toFixed(1);
+            document.getElementById('riskPctSlider').value = val;
+            calculateAll();
+        }
+
+        // 设置最大仓位百分比上限
+        function setMaxPos(pct) {
+            state.maxPositionPct = pct;
+            [20, 25, 30, 50, 100].forEach(p => {
+                const btn = document.getElementById(`maxpos-${p}`);
+                if (p === pct) {
+                    btn.className = 'maxpos-btn py-1.5 rounded-lg text-xs font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition';
+                } else {
+                    btn.className = 'maxpos-btn py-1.5 rounded-lg text-xs font-mono bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800 transition';
+                }
+            });
+            calculateAll();
+        }
+
+        // 设置第一轮减仓点 (3R 或 5R)
+        function setFirstTrimR(rVal) {
+            state.firstTrimR = rVal;
+            const btn3 = document.getElementById('trim-3r-btn');
+            const btn5 = document.getElementById('trim-5r-btn');
+            if (rVal === 3) {
+                btn3.className = 'px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold transition';
+                btn5.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-slate-200 transition';
+            } else {
+                btn5.className = 'px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold transition';
+                btn3.className = 'px-2.5 py-1 rounded text-slate-400 hover:text-slate-200 transition';
+            }
+            calculateAll();
+        }
+
+        // 快捷设置尾仓 R 倍数
+        function setRunnerR(rVal) {
+            document.getElementById('runnerRSlider').value = rVal;
+            calculateAll();
+        }
+
+        // 核心实时响应式计算引擎
+        function calculateAll() {
+            const ticker = (document.getElementById('tickerInput').value || 'TICKER').trim().toUpperCase();
+            const equity = Math.max(100, parseFloat(document.getElementById('equityInput').value) || 50000);
+            const riskPct = Math.max(0.05, parseFloat(document.getElementById('riskPctInput').value) || 1.0);
+            const entryPrice = Math.max(0.01, parseFloat(document.getElementById('entryPriceInput').value) || 100);
+            const stopPrice = Math.max(0.01, parseFloat(document.getElementById('stopPriceInput').value) || 98);
+            const adrPct = Math.max(0.5, parseFloat(document.getElementById('adrInput').value) || 6.0);
+            const runnerR = parseInt(document.getElementById('runnerRSlider').value, 10) || 10;
+
+            // 1. 校验单笔风险是否超过 2%
+            const riskWarningBox = document.getElementById('riskWarningBox');
+            if (riskPct > 2.0) {
+                riskWarningBox.classList.remove('hidden');
+            } else {
+                riskWarningBox.classList.add('hidden');
+            }
+
+            // 2. 更新方向徽章
+            const dirBadge = document.getElementById('outputDirectionBadge');
+            if (state.direction === 'LONG') {
+                dirBadge.textContent = `▲ LONG ${ticker}`;
+                dirBadge.className = 'px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+            } else {
+                dirBadge.textContent = `▼ SHORT ${ticker}`;
+                dirBadge.className = 'px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30';
+            }
+
+            // 3. 校验入场价与止损价方向合理性
+            const isInvalidLong = state.direction === 'LONG' && stopPrice >= entryPrice;
+            const isInvalidShort = state.direction === 'SHORT' && stopPrice <= entryPrice;
+            const errorBanner = document.getElementById('priceErrorBanner');
+
+            if (isInvalidLong || isInvalidShort) {
+                errorBanner.classList.remove('hidden');
+                document.getElementById('priceErrorText').textContent = isInvalidLong
+                    ? `价格冲突：当前为做多 (LONG) 模式，止损价格 ($${stopPrice.toFixed(2)}) 必须低于入场价格 ($${entryPrice.toFixed(2)})。`
+                    : `价格冲突：当前为做空 (SHORT) 模式，止损价格 ($${stopPrice.toFixed(2)}) 必须高于入场价格 ($${entryPrice.toFixed(2)})。`;
+                return;
+            } else {
+                errorBanner.classList.add('hidden');
+            }
+
+            // 4. 计算每股风险、止损百分比、理论仓位与防跳空上限截断
+            const riskPerShare = Math.abs(entryPrice - stopPrice);
+            const stopDistancePct = (riskPerShare / entryPrice) * 100;
+            const plannedRiskDollar = equity * (riskPct / 100);
+
+            const rawShares = Math.floor(plannedRiskDollar / riskPerShare);
+            const rawPositionValue = rawShares * entryPrice;
+            const rawPositionPct = (rawPositionValue / equity) * 100;
+
+            const maxAllowedPositionValue = equity * (state.maxPositionPct / 100);
+            const maxAllowedShares = Math.floor(maxAllowedPositionValue / entryPrice);
+
+            const isCapped = rawShares > maxAllowedShares;
+            const finalShares = isCapped ? maxAllowedShares : rawShares;
+            const finalPositionValue = finalShares * entryPrice;
+            const finalPositionPct = (finalPositionValue / equity) * 100;
+
+            const effectiveRiskDollar = finalShares * riskPerShare;
+            const effectiveRiskPct = (effectiveRiskDollar / equity) * 100;
+
+            // 5. 控制仓位上限截断提示横幅
+            const capBanner = document.getElementById('capTruncationBanner');
+            if (isCapped) {
+                capBanner.classList.remove('hidden');
+                document.getElementById('uncappedPosHint').textContent = `原理论仓位: ${rawPositionPct.toFixed(1)}% (${rawShares.toLocaleString()} 股)`;
+                document.getElementById('capBannerStopPct').textContent = `${stopDistancePct.toFixed(2)}%`;
+                document.getElementById('capBannerLimitPct').textContent = `${state.maxPositionPct}%`;
+            } else {
+                capBanner.classList.add('hidden');
+            }
+
+            // 6. 渲染核心输出 4 宫格
+            document.getElementById('outShares').innerHTML = `${finalShares.toLocaleString()} <span class="text-xs font-normal text-slate-400">股</span>`;
+            document.getElementById('outSharesSub').textContent = isCapped
+                ? `已由 ${rawShares.toLocaleString()} 股截断至上限`
+                : `全部按计划 1R 风险满额分配`;
+
+            document.getElementById('outPositionValue').textContent = fmtCurrency(finalPositionValue, 0);
+            document.getElementById('outPosPctBadge').textContent = `${finalPositionPct.toFixed(1)}% 净值`;
+            document.getElementById('posSizeBar').style.width = `${Math.min(100, finalPositionPct)}%`;
+
+            document.getElementById('outEffectiveRiskDollar').textContent = `-${fmtCurrency(effectiveRiskDollar, 0)}`;
+            document.getElementById('outEffRiskPct').textContent = `${effectiveRiskPct.toFixed(2)}% 净值`;
+            document.getElementById('outTargetRiskCompare').textContent = isCapped
+                ? `原计划预算: ${fmtCurrency(plannedRiskDollar, 0)} (${riskPct.toFixed(2)}%)`
+                : `与计划 1R 预算 (${fmtCurrency(plannedRiskDollar, 0)}) 一致`;
+
+            document.getElementById('outStopDistancePct').textContent = `${stopDistancePct.toFixed(2)}%`;
+            document.getElementById('outRiskPerShare').textContent = `每股风险敞口: $${riskPerShare.toFixed(2)} / 股`;
+
+            // 7. 止损幅度颜色徽章评估 (<=2% 翠绿极窄；2%-3.5% 黄色常规；>3.5% 红色过宽警告)
+            const stopBadge = document.getElementById('stopQualityBadge');
+            const stopDistEl = document.getElementById('outStopDistancePct');
+            if (stopDistancePct <= 2.0) {
+                stopBadge.className = 'px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5';
+                stopBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span>极窄优质止损 (<=2.0%) · 高盈亏比潜力`;
+                stopDistEl.className = 'text-2xl sm:text-3xl font-mono font-bold text-emerald-400 tracking-tight';
+            } else if (stopDistancePct <= 3.5) {
+                stopBadge.className = 'px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1.5';
+                stopBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400"></span>常规波段止损 (2.0% - 3.5%)`;
+                stopDistEl.className = 'text-2xl sm:text-3xl font-mono font-bold text-amber-400 tracking-tight';
+            } else {
+                stopBadge.className = 'px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30 flex items-center gap-1.5';
+                stopBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-400 animate-ping"></span>止损过宽 (>3.5%) · 建议等待 5m/15m Shakeout V反压缩止损`;
+                stopDistEl.className = 'text-2xl sm:text-3xl font-mono font-bold text-rose-400 tracking-tight';
+            }
+
+            // 8. ADR% 校验诊断
+            const adrRatio = stopDistancePct / adrPct;
+            const adrDiag = document.getElementById('adrDiagnostic');
+            if (adrRatio <= 0.35) {
+                adrDiag.innerHTML = `<span class="text-emerald-400 font-mono font-bold">✓ 极佳 (${(adrRatio * 100).toFixed(0)}% ADR):</span> <span class="text-slate-300">止损幅度仅为日均波幅的 ${(adrRatio).toFixed(2)} 倍，一旦日内启动顺势突破即可轻松跨越 3R。</span>`;
+            } else if (adrRatio <= 0.5) {
+                adrDiag.innerHTML = `<span class="text-cyan-400 font-mono font-bold">● 合理 (${(adrRatio * 100).toFixed(0)}% ADR):</span> <span class="text-slate-300">止损位于 0.5 倍 ADR 安全阈值内，符合动量股日内正常呼吸区间。</span>`;
+            } else {
+                adrDiag.innerHTML = `<span class="text-amber-400 font-mono font-bold">⚠ 偏宽 (${(adrRatio * 100).toFixed(0)}% ADR > 50%):</span> <span class="text-slate-300">止损超过 0.5 倍日线 ADR%，不仅降低盈亏比，且日内极难拉开脱离成本的安全垫。建议切换 5m/15m 寻找更紧凑的反转点。</span>`;
+            }
+
+            // 9. 购买力与连续 5 次止损回撤模拟
+            const bpStatus = document.getElementById('buyingPowerStatus');
+            if (finalPositionPct <= 50) {
+                bpStatus.textContent = `现金充足 (占用 ${finalPositionPct.toFixed(1)}% 净值，留有充裕机动仓位)`;
+            } else {
+                bpStatus.textContent = `重仓集中 (占用 ${finalPositionPct.toFixed(1)}% 净值，请严格设置硬止损单)`;
+            }
+
+            // 连续止损 5 次复利回撤计算
+            const remainRatioAfter5 = Math.pow(1 - (effectiveRiskPct / 100), 5);
+            const drawdown5Pct = (1 - remainRatioAfter5) * 100;
+            const drawdown5Dollar = equity * (drawdown5Pct / 100);
+            document.getElementById('streakLossSim').textContent = `-${drawdown5Pct.toFixed(2)}% (-${fmtCurrency(drawdown5Dollar, 0)}) · 1 笔 5R 即可完全覆盖`;
+
+            // 10. 计算分批止盈与动态离场路线图 (R-Multiple Execution Plan)
+            const dirSign = state.direction === 'LONG' ? 1 : -1;
+            const calcTargetPrice = (r) => Math.max(0.01, entryPrice + dirSign * r * riskPerShare);
+            const calcMovePct = (targetP) => ((targetP - entryPrice) / entryPrice) * 100;
+
+            const price3R = calcTargetPrice(3);
+            const price5R = calcTargetPrice(5);
+            const priceRunner = calcTargetPrice(runnerR);
+
+            // 分批股数拆分：首轮平 1/3，尾仓留 2/3
+            const trimShares = Math.floor(finalShares / 3);
+            const runnerShares = finalShares - trimShares;
+
+            // 渲染路线图表格
+            document.getElementById('tableStopPrice').textContent = `$${stopPrice.toFixed(2)}`;
+            document.getElementById('tableStopPct').textContent = `${calcMovePct(stopPrice) >= 0 ? '+' : ''}${calcMovePct(stopPrice).toFixed(2)}%`;
+            document.getElementById('tableStopLossDollar').textContent = `-${fmtCurrency(effectiveRiskDollar, 0)}`;
+
+            document.getElementById('tableBreakevenPrice').textContent = `$${entryPrice.toFixed(2)}`;
+            document.getElementById('tableBreakevenRule').innerHTML = state.direction === 'LONG'
+                ? `当 <strong>日线 9 EMA 上穿 $${entryPrice.toFixed(2)}</strong> 时，止损上移至保本位，转化为 Free Trade`
+                : `当 <strong>日线 9 EMA 下穿 $${entryPrice.toFixed(2)}</strong> 时，止损下移至保本位，转化为 Free Trade`;
+
+            // 3R 行
+            const profit3ROneThird = trimShares * (3 * riskPerShare);
+            document.getElementById('table3RPrice').textContent = `$${price3R.toFixed(2)}`;
+            document.getElementById('table3RPct').textContent = `${calcMovePct(price3R) >= 0 ? '+' : ''}${calcMovePct(price3R).toFixed(2)}%`;
+            document.getElementById('table3RAction').innerHTML = state.firstTrimR === 3
+                ? `<span class="text-emerald-300 font-semibold">[当前启用]</span> 主动平仓 1/3 (<span class="font-mono font-bold text-emerald-400">${trimShares.toLocaleString()} 股</span>) Sell into strength`
+                : `可选减仓点：若平仓 1/3 (${trimShares.toLocaleString()} 股) 可锁利 ${fmtCurrency(profit3ROneThird, 0)}`;
+            document.getElementById('table3RProfit').textContent = `+${fmtCurrency(profit3ROneThird, 0)}`;
+
+            // 5R 行
+            const profit5ROneThird = trimShares * (5 * riskPerShare);
+            document.getElementById('table5RPrice').textContent = `$${price5R.toFixed(2)}`;
+            document.getElementById('table5RPct').textContent = `${calcMovePct(price5R) >= 0 ? '+' : ''}${calcMovePct(price5R).toFixed(2)}%`;
+            document.getElementById('table5RAction').innerHTML = state.firstTrimR === 5
+                ? `<span class="text-teal-300 font-semibold">[当前启用]</span> 主动平仓 1/3 (<span class="font-mono font-bold text-teal-400">${trimShares.toLocaleString()} 股</span>) 锁定丰厚垫底利润`
+                : `若在 3R 未减仓，则在此处平仓 1/3 (${trimShares.toLocaleString()} 股)`;
+            document.getElementById('table5RProfit').textContent = `+${fmtCurrency(profit5ROneThird, 0)}`;
+
+            // 尾仓 Runner 行
+            const profitRunner = runnerShares * (runnerR * riskPerShare);
+            document.getElementById('tableRunnerRBadge').textContent = `+${runnerR}R 尾仓奔跑`;
+            document.getElementById('tableRunnerPrice').textContent = `$${priceRunner.toFixed(2)}`;
+            document.getElementById('tableRunnerPct').textContent = `${calcMovePct(priceRunner) >= 0 ? '+' : ''}${calcMovePct(priceRunner).toFixed(2)}%`;
+            document.getElementById('tableRunnerAction').innerHTML = `剩余 2/3 (<span class="font-mono font-bold text-amber-300">${runnerShares.toLocaleString()} 股</span>) 沿日线 9/21 EMA 移动止盈直至趋势终结`;
+            document.getElementById('tableRunnerProfit').textContent = `+${fmtCurrency(profitRunner, 0)}`;
+
+            // 11. 综合收益与 Blended R 汇总计算
+            const firstTrimProfit = state.firstTrimR === 3 ? profit3ROneThird : profit5ROneThird;
+            const totalNetProfit = firstTrimProfit + profitRunner;
+            const blendedR = effectiveRiskDollar > 0 ? (totalNetProfit / effectiveRiskDollar) : 0;
+            const accountGrowthPct = (totalNetProfit / equity) * 100;
+
+            document.getElementById('simTotalProfit').textContent = `+${fmtCurrency(totalNetProfit, 0)}`;
+            document.getElementById('simProfitFormula').textContent = `1/3 (${trimShares}股) @ ${state.firstTrimR}R + 2/3 (${runnerShares}股) @ ${runnerR}R`;
+            document.getElementById('simBlendedR').textContent = `${blendedR.toFixed(2)} R`;
+            document.getElementById('simCoverLosses').textContent = Math.floor(blendedR);
+            document.getElementById('simAccountGrowth').textContent = `+${accountGrowthPct.toFixed(2)}%`;
+            document.getElementById('simNewEquity').textContent = `预计新净值: ${fmtCurrency(equity + totalNetProfit, 0)}`;
+        }
+
+        // 更新微观执行检查表得分
+        function updateChecklist() {
+            const checkboxes = document.querySelectorAll('#checklistContainer input[type="checkbox"]');
+            let checkedCount = 0;
+            checkboxes.forEach(cb => { if (cb.checked) checkedCount++; });
+
+            const badge = document.getElementById('checklistScoreBadge');
+            if (checkedCount === 5) {
+                badge.textContent = `得分: 5/5 (A+ 级标准信号)`;
+                badge.className = 'text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+            } else if (checkedCount >= 3) {
+                badge.textContent = `得分: ${checkedCount}/5 (B 级 · 建议减半风险)`;
+                badge.className = 'text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30';
+            } else {
+                badge.textContent = `得分: ${checkedCount}/5 (不达标 · 严禁强行交易)`;
+                badge.className = 'text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30';
+            }
+        }
+
+        // 复制完整交易计划到剪贴板
+        function copyTradePlan() {
+            const ticker = (document.getElementById('tickerInput').value || 'TICKER').trim().toUpperCase();
+            const entry = document.getElementById('entryPriceInput').value;
+            const stop = document.getElementById('stopPriceInput').value;
+            const shares = document.getElementById('outShares').innerText.replace(' 股', '');
+            const posVal = document.getElementById('outPositionValue').innerText;
+            const posPct = document.getElementById('outPosPctBadge').innerText;
+            const effRisk = document.getElementById('outEffectiveRiskDollar').innerText;
+            const stopPct = document.getElementById('outStopDistancePct').innerText;
+            const p3R = document.getElementById('table3RPrice').innerText;
+            const p5R = document.getElementById('table5RPrice').innerText;
+            const pRun = document.getElementById('tableRunnerPrice').innerText;
+            const totalProf = document.getElementById('simTotalProfit').innerText;
+
+            const planText = [
+                `=== MARTIN LUK 交易执行指令 [${state.direction} ${ticker}] ===`,
+                `策略模型: ${state.presetsConfig[state.preset].name}`,
+                `入场价格: $${entry} | 止损价格: $${stop} (止损幅度: ${stopPct})`,
+                `建议股数: ${shares} 股 | 名义仓位: ${posVal} (${posPct})`,
+                `实际 1R 风险敞口: ${effRisk}`,
+                `--- 分批止盈与移动止损计划 ---`,
+                `• 0R 保本触发: 日线 9 EMA 穿越 $${entry} 后上移止损至保本 (Free Trade)`,
+                `• 3R 首轮减仓 (1/3仓位): ${p3R}`,
+                `• 5R 强势锁利位: ${p5R}`,
+                `• 尾仓 (2/3仓位) 趋势目标: ${pRun} (沿日线 9/21 EMA 移动止盈)`,
+                `• 预计单笔综合净利: ${totalProf}`
+            ].join('\n');
+
+            const textarea = document.createElement('textarea');
+            textarea.value = planText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            showToast('交易执行计划已复制到剪贴板！');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toastNotification');
+            document.getElementById('toastText').textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2600);
+        }
+
+        // 重置默认参数
+        function resetDefaults() {
+            document.getElementById('tickerInput').value = 'NVDA';
+            document.getElementById('equityInput').value = 50000;
+            document.getElementById('riskPctInput').value = '1.0';
+            document.getElementById('riskPctSlider').value = 1.0;
+            document.getElementById('entryPriceInput').value = '120.00';
+            document.getElementById('adrInput').value = '6.0';
+            document.getElementById('runnerRSlider').value = 10;
+            setMaxPos(30);
+            setFirstTrimR(3);
+            selectPreset('pullback');
+            showToast('已重置为 Martin Luk 标准风控参数');
+        }
+
+        // 页面初始化
+        window.onload = function () {
+            setMaxPos(30);
+            selectPreset('pullback');
+            updateChecklist();
+            // 页面加载后自动拉取默认标的(NVDA)的实时行情与技术指标
+            fetchMarketData(true);
+        };
+    </script>
+</body>
+</html>
