@@ -9,6 +9,7 @@
   <style>
     :root{font-family:Inter,"Segoe UI","Microsoft YaHei",sans-serif;color:#eaf3ef;background:#0c171b;font-synthesis:none}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 85% 3%,#244b45 0,transparent 33%),#0c171b;min-height:100vh}button,input{font:inherit}button{cursor:pointer}.wrap{max-width:1190px;margin:auto;padding:38px 28px 72px}.top{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-bottom:42px}.brand{font-size:14px;font-weight:800;letter-spacing:.18em;color:#b7ead3;text-transform:uppercase}.badge{border:1px solid #426159;border-radius:999px;color:#a8c4b9;padding:8px 13px;font-size:12px}.hero{max-width:740px;margin-bottom:34px}.eyebrow{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#7ee3ae;font-weight:800;margin-bottom:14px}h1{font-size:clamp(38px,5vw,65px);line-height:1.06;letter-spacing:-.055em;margin:0 0 18px}h1 em{font-style:normal;color:#9cebba}.hero p{font-size:16px;line-height:1.7;color:#a9bdb6;max-width:590px;margin:0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{background:#142328;border:1px solid #2a4243;border-radius:20px;padding:28px;box-shadow:0 20px 45px #06101244}.panel h2{font-size:18px;margin:0 0 7px;letter-spacing:-.02em}.sub{color:#8da9a0;font-size:13px;line-height:1.55;margin:0 0 26px}.inputs{display:grid;grid-template-columns:1fr 1fr;gap:17px}.field label{display:block;color:#c0d4cb;font-size:13px;font-weight:700;margin:0 0 8px}.field small{display:block;color:#78978c;font-size:11px;margin-top:6px}.input{display:flex;align-items:center;background:#0c1a1e;border:1px solid #35504d;border-radius:11px;overflow:hidden;transition:border-color .2s}.input:focus-within{border-color:#8ce6ae;box-shadow:0 0 0 3px #8ce6ae1a}.input span{padding:0 12px;color:#7ea394}.input input{border:0;outline:0;background:transparent;color:#f2f8f3;width:100%;padding:13px 10px 13px 0;min-width:0;font-weight:700;font-variant-numeric:tabular-nums}.input input::-webkit-inner-spin-button{-webkit-appearance:none}.rowline{height:1px;background:#29433f;margin:27px 0 24px}.seg{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}.seg button{border:1px solid #3b5750;background:#18312e;color:#b0c9bb;padding:9px 14px;border-radius:9px;font-weight:700}.seg button.active{background:#9beaaf;border-color:#9beaaf;color:#10251c}.results{display:grid;grid-template-columns:1fr 1fr;gap:12px}.result{background:#0d1d20;border:1px solid #2a4542;border-radius:14px;padding:17px;min-height:99px}.result.primary{background:#18372d;border-color:#478164}.result span{color:#9ab7a9;display:block;font-size:12px;margin-bottom:10px}.result strong{font-size:27px;letter-spacing:-.04em;font-variant-numeric:tabular-nums}.result.primary strong{color:#aeefbf}.result small{display:block;color:#76998a;font-size:11px;margin-top:6px}.full{grid-column:1/-1}.meter{height:9px;background:#263936;border-radius:99px;overflow:hidden;margin:14px 0 9px}.meter b{display:block;height:100%;background:linear-gradient(90deg,#7adea4,#d5e572);width:0;border-radius:99px}.status{font-size:12px;color:#a4c9b4;line-height:1.5}.status.warn{color:#ffd086}.note{color:#9cb9aa;font-size:12px;line-height:1.7;margin:22px 0 0}.error{color:#ffbb9b;min-height:20px;font-size:12px;margin-top:15px}.source{margin-top:24px;border-top:1px solid #29423e;padding-top:22px;color:#8fa99c;font-size:12px;line-height:1.7}.source a{color:#a8e6be}.footer{margin-top:28px;color:#647e73;font-size:12px;line-height:1.6}.formula{display:block;color:#a1c6ae;background:#0e1f20;border-radius:11px;padding:14px 16px;font-size:12px;line-height:1.8;margin-top:18px}.tag{font-size:11px;color:#86b9a0;border:1px solid #3c6853;padding:5px 8px;border-radius:6px;margin-left:7px}@media(max-width:760px){.wrap{padding:25px 16px 48px}.top{padding-bottom:32px}.grid{grid-template-columns:1fr}.panel{padding:21px}.inputs{gap:13px}h1{font-size:43px}}@media(max-width:430px){.inputs{grid-template-columns:1fr}.result strong{font-size:23px}.badge{display:none}}
   </style>
+  <style>.scenario{margin-top:20px}.scenario h3{font-size:15px;margin:0 0 7px}.scenario p{font-size:12px;color:#8da9a0;line-height:1.6;margin:0 0 14px}.scenario .results{margin-top:14px}.mini{font-size:12px;color:#8fb6a0;line-height:1.6;margin-top:10px}.direction{margin:0 0 20px}.direction .seg{margin:8px 0 0}</style>
 </head>
 <body>
 <main class="wrap">
@@ -16,6 +17,7 @@
   <section class="hero"><div class="eyebrow">Trade with defined risk</div><h1>先定义风险，<br><em>再决定仓位。</em></h1><p>输入交易计划，即时算出可买股数、最大计划亏损和潜在风险回报。参考 Martin Luk 公开分享的紧止损与单笔账户风险框架。</p></section>
   <div class="grid">
     <section class="panel" aria-label="交易参数"><h2>01 / 交易参数</h2><p class="sub">所有价格使用同一币种；美股可直接以美元输入。</p>
+      <div class="direction"><span class="field"><label>交易方向</label></span><div class="seg" aria-label="交易方向"><button type="button" data-side="long" class="active">做多</button><button type="button" data-side="short">做空</button></div></div>
       <div class="inputs">
         <div class="field"><label for="equity">账户资金</label><div class="input"><span>$</span><input id="equity" type="number" min="0" step="100" value="20000" inputmode="decimal"></div></div>
         <div class="field"><label for="risk">每笔账户风险</label><div class="input"><span>%</span><input id="risk" type="number" min="0" max="100" step="0.1" value="0.5" inputmode="decimal"></div><small>公开分享约 0.5%–1%</small></div>
@@ -23,6 +25,8 @@
         <div class="field"><label for="stop">计划止损价</label><div class="input"><span>$</span><input id="stop" type="number" min="0" step="0.01" value="48.75" inputmode="decimal"></div></div>
         <div class="field"><label for="target">目标价 <span class="tag">可选</span></label><div class="input"><span>$</span><input id="target" type="number" min="0" step="0.01" value="60" inputmode="decimal"></div></div>
         <div class="field"><label for="adr">股票 ADR <span class="tag">可选</span></label><div class="input"><span>%</span><input id="adr" type="number" min="0" step="0.1" value="5" inputmode="decimal"></div><small>平均每日波动幅度</small></div>
+        <div class="field"><label for="current">当前价格 <span class="tag">可选</span></label><div class="input"><span>$</span><input id="current" type="number" min="0" step="0.01" inputmode="decimal" placeholder="用于持仓测算"></div></div>
+        <div class="field"><label for="liveStop">移动止损价 <span class="tag">可选</span></label><div class="input"><span>$</span><input id="liveStop" type="number" min="0" step="0.01" inputmode="decimal" placeholder="用于持仓测算"></div></div>
       </div><div class="error" id="error" role="alert"></div>
       <div class="formula">仓位股数 = ⌊允许亏损金额 ÷ 每股止损距离⌋<br>允许亏损金额 = 账户资金 × 单笔风险比例</div>
     </section>
@@ -36,35 +40,44 @@
         <div class="result full"><span>目标风险回报</span><strong id="rr">—</strong><small id="profit">目标计划盈利 —</small></div>
         <div class="result full"><span>止损距离 / ADR</span><div class="meter"><b id="meter"></b></div><div id="adrStatus" class="status">输入 ADR 后显示参考检查。</div></div>
       </div><p class="note">提示：Martin Luk 曾提到止损通常为 1%–5%，且尽量不超过股票 ADR 的一半。这是个人历史做法，不是适用于所有市场的固定规则。</p>
+      <div class="rowline"></div><div class="scenario"><h3>03 / 出场情景</h3><p>以下按你提供的「到达 3R 或 5R 时卖出 1/3」假设计算；这不是经核实的固定执行规则。</p><div class="results"><div class="result"><span>3R 价格</span><strong id="r3">—</strong><small id="r3partial">卖出 1/3 后锁定 —</small></div><div class="result"><span>5R 价格</span><strong id="r5">—</strong><small id="r5partial">卖出 1/3 后锁定 —</small></div><div class="result full"><span>当前持仓 R 倍数</span><strong id="liveR">—</strong><small id="livePnl">填写当前价后显示</small></div><div class="result full"><span>若 3R 卖出 1/3 后，剩余仓位触发移动止损</span><strong id="stopPnl">—</strong><small id="freeTrade">填写移动止损价后显示</small></div></div><div class="mini">「保本」只表示移动止损价到达入场价；跳空与滑点仍可能造成实际亏损。</div></div>
     </section>
   </div>
-  <div class="source">资料来源：<a href="https://tradingresourcehub.substack.com/p/martin-luk-283-usic-2024-key-lessons" target="_blank" rel="noopener noreferrer">Martin Luk 本人撰写的 2024 年交易回顾</a>。页面仅做计划测算；未计佣金、滑点、税费、杠杆及盘前盘后流动性。</div>
+  <div class="source">资料来源：<a href="https://tradingresourcehub.substack.com/p/martin-luk-283-usic-2024-key-lessons" target="_blank" rel="noopener noreferrer">Martin Luk 本人撰写的 2024 年交易回顾</a>、<a href="https://www.youtube.com/watch?v=VKNEJA5r8zw" target="_blank" rel="noopener noreferrer">TraderLion 访谈</a>。3R/5R 与 1/3 出场为用户提供的情景设定。页面仅做计划测算；未计佣金、滑点、税费、借券成本、杠杆及盘前盘后流动性。</div>
   <footer class="footer">教育用途 · 不构成投资建议 · 交易前请独立核验报价与风险</footer>
 </main>
 <script>
-  const ids=['equity','risk','entry','stop','target','adr'];
+  const ids=['equity','risk','entry','stop','target','adr','current','liveStop'];
+  let side='long';
   const el=Object.fromEntries(ids.map(id=>[id,document.getElementById(id)]));
   const out=id=>document.getElementById(id);
   const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n);
   const num=n=>new Intl.NumberFormat('en-US',{maximumFractionDigits:0}).format(n);
   const pct=n=>`${n.toFixed(2)}%`;
-  function clear(){for(const id of ['shares','loss','capital','stopDistance','rr'])out(id).textContent='—';for(const id of ['budget','exposure','stopPct','profit'])out(id).textContent='—';out('meter').style.width='0';out('adrStatus').textContent='输入有效数据后显示参考检查。'}
+  function clear(){for(const id of ['shares','loss','capital','stopDistance','rr','r3','r5','liveR','stopPnl'])out(id).textContent='—';for(const id of ['budget','exposure','stopPct','profit','r3partial','r5partial','livePnl','freeTrade'])out(id).textContent='—';out('meter').style.width='0';out('adrStatus').textContent='输入有效数据后显示参考检查。'}
   function calculate(){
     const v=Object.fromEntries(ids.map(id=>[id,el[id].value.trim()===''?null:Number(el[id].value)]));
     const bad=ids.some(id=>v[id]!==null&&!Number.isFinite(v[id]));
     let error='';
     if(bad||!(v.equity>0)||!(v.risk>0&&v.risk<=100)||!(v.entry>0)||!(v.stop>0))error='请填写有效的账户资金、风险比例、入场价和止损价。';
-    else if(v.stop>=v.entry)error='多头交易的止损价必须低于入场价。';
-    else if(v.target!==null&&v.target<=v.entry)error='目标价须高于入场价，或留空。';
+    else if(side==='long'&&v.stop>=v.entry)error='做多时，止损价必须低于入场价。';
+    else if(side==='short'&&v.stop<=v.entry)error='做空时，止损价必须高于入场价。';
+    else if(v.target!==null&&((side==='long'&&v.target<=v.entry)||(side==='short'&&v.target>=v.entry)))error='目标价须位于盈利方向，或留空。';
     else if(v.adr!==null&&v.adr<=0)error='ADR 须大于 0，或留空。';
+    else if(v.current!==null&&v.current<=0)error='当前价格须大于 0，或留空。';
+    else if(v.liveStop!==null&&v.liveStop<=0)error='移动止损价须大于 0，或留空。';
     out('error').textContent=error;if(error){clear();return}
-    const budget=v.equity*v.risk/100, distance=v.entry-v.stop, shares=Math.floor(budget/distance), loss=shares*distance, capital=shares*v.entry, stopPct=distance/v.entry*100;
+    const sign=side==='long'?1:-1,budget=v.equity*v.risk/100, distance=Math.abs(v.entry-v.stop), shares=Math.floor(budget/distance), loss=shares*distance, capital=shares*v.entry, stopPct=distance/v.entry*100;
     out('shares').textContent=num(shares);out('loss').textContent=money(loss);out('budget').textContent=`风险预算 ${money(budget)}`;out('capital').textContent=money(capital);out('exposure').textContent=`账户占用 ${pct(capital/v.equity*100)}${capital>v.equity?' · 需要杠杆或缩小仓位':''}`;out('stopDistance').textContent=money(distance);out('stopPct').textContent=`止损幅度 ${pct(stopPct)}`;
-    if(v.target!==null){out('rr').textContent=`1 : ${((v.target-v.entry)/distance).toFixed(2)}`;out('profit').textContent=`目标计划盈利 ${money(shares*(v.target-v.entry))}`}else{out('rr').textContent='—';out('profit').textContent='填写目标价后显示'}
+    if(v.target!==null){out('rr').textContent=`1 : ${(sign*(v.target-v.entry)/distance).toFixed(2)}`;out('profit').textContent=`目标计划盈利 ${money(shares*sign*(v.target-v.entry))}`}else{out('rr').textContent='—';out('profit').textContent='填写目标价后显示'}
+    for(const [multiple,key] of [[3,'r3'],[5,'r5']]){out(key).textContent=money(v.entry+sign*distance*multiple);out(`${key}partial`).textContent=`卖出 ${Math.floor(shares/3)} 股后锁定 ${money(Math.floor(shares/3)*distance*multiple)}`}
+    if(v.current!==null){out('liveR').textContent=`${(sign*(v.current-v.entry)/distance).toFixed(2)}R`;out('livePnl').textContent=`整仓浮动盈亏 ${money(shares*sign*(v.current-v.entry))}`}else{out('liveR').textContent='—';out('livePnl').textContent='填写当前价后显示'}
+    if(v.liveStop!==null){const sold=Math.floor(shares/3),exitPnl=sold*distance*3+(shares-sold)*sign*(v.liveStop-v.entry);out('stopPnl').textContent=money(exitPnl);out('freeTrade').textContent=`包含 3R 分批锁利 ${money(sold*distance*3)}；${sign*(v.liveStop-v.entry)>=0?'剩余仓位止损在保本或盈利区':'剩余仓位止损仍在亏损区'}`}else{out('stopPnl').textContent='—';out('freeTrade').textContent='填写移动止损价后显示'}
     if(v.adr!==null){const ratio=stopPct/v.adr;out('meter').style.width=`${Math.min(ratio*100,100)}%`;const s=out('adrStatus');s.classList.toggle('warn',ratio>0.5);s.textContent=`止损距离约为 ADR 的 ${pct(ratio*100)}；${ratio<=0.5?'符合其公开提到的“低于 ADR 一半”参考范围。':'超过其公开提到的 ADR 一半参考范围。'}`}else{out('meter').style.width='0';out('adrStatus').textContent='输入 ADR 后显示参考检查。';out('adrStatus').classList.remove('warn')}
   }
   ids.forEach(id=>el[id].addEventListener('input',()=>{if(id==='risk'){document.querySelectorAll('[data-risk]').forEach(b=>b.classList.toggle('active',Number(b.dataset.risk)===Number(el.risk.value)))}calculate()}));
   document.querySelectorAll('[data-risk]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.risk!=='custom'){el.risk.value=b.dataset.risk;calculate();document.querySelectorAll('[data-risk]').forEach(x=>x.classList.toggle('active',x===b))}else{el.risk.focus();document.querySelectorAll('[data-risk]').forEach(x=>x.classList.toggle('active',x===b))}}));
+  document.querySelectorAll('[data-side]').forEach(b=>b.addEventListener('click',()=>{if(side===b.dataset.side)return;side=b.dataset.side;document.querySelectorAll('[data-side]').forEach(x=>x.classList.toggle('active',x===b));const oldStop=Number(el.stop.value),oldEntry=Number(el.entry.value),oldTarget=Number(el.target.value);if(oldStop&&oldEntry){el.stop.value=(oldEntry+(side==='long'?-1:1)*Math.abs(oldEntry-oldStop)).toFixed(2)}if(el.target.value&&oldTarget&&oldEntry){el.target.value=(oldEntry+(side==='long'?1:-1)*Math.abs(oldTarget-oldEntry)).toFixed(2)}el.liveStop.value='';el.current.value='';calculate()}));
   calculate();
 </script>
 </body>
