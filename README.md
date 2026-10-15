@@ -8,6 +8,6 @@
 
 ## 发布
 
-先运行 `gh auth login` 和 `npx wrangler login`。Windows PowerShell 运行 `./deploy.ps1`；macOS/Linux 运行 `bash deploy.sh`。脚本会创建公开 GitHub 仓库、推送当前文件，并创建与部署 Cloudflare Pages 项目。首次创建项目时运行即可；已有 Pages 项目可直接运行 `npm run deploy`。
+项目已发布到 [Cloudflare Pages](https://martin-luk-calculator.pages.dev/)，源代码位于 [GitHub](https://github.com/glows/martin-luk-risk-calculator)。后续更新时，Windows PowerShell 运行 `./deploy.ps1`；macOS/Linux 运行 `bash deploy.sh`。脚本会提交并推送更改，再直接部署现有 Cloudflare Pages 项目。运行前确保 GitHub 和 Wrangler 命令行已登录。
 
 若希望以后每次推送自动部署，请在 Cloudflare Dashboard 的 Workers & Pages 中创建**新的 Git 集成 Pages 项目**并连接 GitHub 仓库，输出目录设为 `public`，构建命令留空。Cloudflare 对已有项目的部署模式有转换限制，因此不要把脚本创建的 Direct Upload 项目当成可直接切换为 Git 集成的项目。
