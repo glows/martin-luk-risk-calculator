@@ -1007,18 +1007,18 @@
             };
         }
 
-        // Engine 1: Yahoo Finance v8 Chart 多重 CORS 代理自动容灾引擎
+        // Engine 1: 同源多源日线网关，公共代理作为最后回退
         async function fetchFromYahooChart(symbol) {
             const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=3mo&interval=1d`;
             const proxyUrls = [`/api/quote?symbol=${encodeURIComponent(symbol)}`,
-                `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
                 `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
             ];
 
             let chartData = null;
             for (const pUrl of proxyUrls) {
                 try {
-                    const json = await fetchWithTimeout(pUrl, 5500);
+                    const json = await fetchWithTimeout(pUrl, pUrl.startsWith('/api/') ? 12000 : 5500);
                     if (json && json.chart && json.chart.result && json.chart.result[0]) {
                         chartData = json.chart.result[0];
                         break;
@@ -1028,7 +1028,7 @@
                 }
             }
 
-            if (!chartData) throw new Error('Yahoo proxies unreachable');
+            if (!chartData) throw new Error('Market data providers unreachable');
 
             const meta = chartData.meta || {};
             const quote = (chartData.indicators && chartData.indicators.quote && chartData.indicators.quote[0]) || {};
@@ -1065,7 +1065,8 @@
                 ema21: calculateEMA(closes, 21),
                 ema50: calculateEMA(closes, 50),
                 adr20: calculate20DayADR(highs, lows),
-                source: 'Yahoo Finance 实时/日K线'
+                source: meta.exchangeName && meta.exchangeName.includes('(')
+                    ? meta.exchangeName : 'Yahoo Finance 日K线'
             };
         }
 
@@ -1120,40 +1121,13 @@
                     }
                 }
             } catch (err) {
-                // 如果 Yahoo 被防火墙拦截但用户配置了 Finnhub Key，则单独用 Finnhub 获取实时报价
-                if (!isCrypto && finnhubKey) {
-                    try {
-                        const fallbackBase = state.fallbackSnapshots[rawSym] || {
-                            lastPrice: 100, prevClose: 98, highOfDay: 102, lowOfDay: 97.5,
-                            ema9: 98.5, ema21: 95.0, ema50: 88.0, adr20: 5.5
-                        };
-                        resultData = await enrichWithFinnhubQuote({ ...fallbackBase, symbol: rawSym }, rawSym, finnhubKey);
-                    } catch (e2) {}
-                }
-
-                // 若所有外部网络均受限，无缝回退至高拟真快照数据并给予清晰标识
-                if (!resultData) {
-                    const snap = state.fallbackSnapshots[rawSym] || {
-                        lastPrice: 120.00, prevClose: 117.50, highOfDay: 122.40, lowOfDay: 117.60,
-                        ema9: 118.20, ema21: 114.50, ema50: 106.00, adr20: 5.60
-                    };
-                    // 加入微小盘中跳动模拟
-                    const jitter = 1 + (Math.random() - 0.48) * 0.002;
-                    const lp = +(snap.lastPrice * jitter).toFixed(2);
-                    resultData = {
-                        symbol: rawSym,
-                        lastPrice: lp,
-                        prevClose: snap.prevClose,
-                        changePct: ((lp - snap.prevClose) / snap.prevClose) * 100,
-                        highOfDay: Math.max(lp, snap.highOfDay),
-                        lowOfDay: Math.min(lp, snap.lowOfDay),
-                        ema9: snap.ema9,
-                        ema21: snap.ema21,
-                        ema50: snap.ema50,
-                        adr20: snap.adr20,
-                        source: '内置行情快照 (网络离线兜底)'
-                    };
-                }
+                state.liveData = null;
+                sourceDot.className = 'w-1.5 h-1.5 rounded-full bg-rose-400';
+                sourceText.textContent = `${rawSym} 行情获取失败，请稍后重试`;
+                btnText.textContent = '获取行情';
+                spinner.classList.remove('animate-spin');
+                showToast(`${rawSym} 行情获取失败，请手动核实价格后再计算`);
+                return;
             }
 
             state.liveData = resultData;

@@ -1,6 +1,6 @@
 # Martin Luk 风险与仓位终端
 
-`public/index.html` 来自提供的 `martin_luk.html`。Yahoo 行情优先请求同源 `/api/quote`，失败时沿用页面原有的公共代理回退。`functions/api/quote.js` 是 Cloudflare Pages Function。行情由 Yahoo Finance 提供，可能延迟、限流或不可用。
+`public/index.html` 来自提供的 `martin_luk.html`。股票行情优先请求同源 `/api/quote`，由 Cloudflare Pages Function 依次尝试 Yahoo query2、腾讯财经、Nasdaq 和 Stooq，并转换为页面所需的 Yahoo Chart 结构。日线备用源可能延迟；页面会显示实际来源。所有来源失败时，页面会提示失败，不会填入模拟价格。外部数据源可能限流、改变格式或停止提供服务。
 
 ## 本地预览
 
