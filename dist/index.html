@@ -64,7 +64,7 @@
   let lastQuote=null;
   const quoteStatus=out('quoteStatus');
   const quoteEndpoint=location.hostname==='martin-luk-risk-calculator.pages.dev'?'/api/risk-quote':'https://martin-luk-risk-calculator.pages.dev/api/risk-quote';
-  out('symbol').addEventListener('input',()=>{lastQuote=null;out('useQuote').disabled=true;quoteStatus.textContent='点击查询报价；计划入场价不会自动改变。';quoteStatus.classList.remove('warn')});
+  out('symbol').addEventListener('input',()=>{if(lastQuote&&Number(el.current.value)===lastQuote.price){el.current.value='';calculate()}lastQuote=null;out('useQuote').disabled=true;quoteStatus.textContent='点击查询报价；计划入场价不会自动改变。';quoteStatus.classList.remove('warn')});
   out('symbol').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();out('fetchQuote').click()}});
   out('fetchQuote').addEventListener('click',async()=>{
     const symbol=out('symbol').value.trim().toUpperCase();
@@ -78,10 +78,13 @@
       const price=Number(data.price),asOf=new Date(data.asOf);
       if(!(price>0)||!Number.isFinite(asOf.getTime()))throw new Error('返回的报价无效');
       if(out('symbol').value.trim().toUpperCase()!==symbol)return;
-      lastQuote={symbol,price};el.current.value=priceValue(price);calculate();out('useQuote').disabled=false;
+      const untouchedExample=stopMode==='structure'&&el.entry.value==='50'&&el.structurePoint.value==='48.76';
+      lastQuote={symbol,price};el.current.value=priceValue(price);
+      if(untouchedExample){el.entry.value=priceValue(price);el.structurePoint.value=''}
+      calculate();out('useQuote').disabled=false;
       const ageMinutes=Math.max(0,Math.floor((Date.now()-asOf.getTime())/60000));
       quoteStatus.classList.toggle('warn',ageMinutes>=15);
-      quoteStatus.textContent=`${symbol} ${money(price)} · ${data.source} · 报价时间 ${asOf.toLocaleString('zh-CN',{timeZone:'America/New_York'})} 美东 · 距今约 ${ageMinutes} 分钟${ageMinutes>=15?'（可能已过时）':'（仍可能延迟）'}`;
+      quoteStatus.textContent=`${symbol} ${money(price)} · ${data.source} · 报价时间 ${asOf.toLocaleString('zh-CN',{timeZone:'America/New_York'})} 美东 · 距今约 ${ageMinutes} 分钟${ageMinutes>=15?'（可能已过时）':'（仍可能延迟）'}${untouchedExample?'。已替换示例入场价，请填写该股的图表失效点。':''}`;
     }catch(error){quoteStatus.classList.add('warn');quoteStatus.textContent=`${symbol} 查询失败：${error.message}。可手动填写当前价格。`}
     finally{out('fetchQuote').disabled=false}
   });
